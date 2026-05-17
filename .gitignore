@@ -1,0 +1,33 @@
+.DS_Store
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local secrets and machine-specific config
+.env
+.env.*
+API/.env
+
+# Runtime data and generated outputs
+history.json
+output/
+assets/output/
+assets/input/
+data/conversations/
+
+# Bundled runtimes, installers, and offline dependency wheels
+python/
+packages/
+*.exe
+get-pip.py
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
