@@ -1,0 +1,341 @@
+[
+    {
+        "prompt": "每层出挑露台嵌入立体绿化，植物从塔基攀缘至塔冠，建筑与植被互为表皮形成会呼吸的立面。\n\n将圣保罗双塔的\"森林搬进高层\"逻辑适配到琶洲。每户南向或东南向设置 1.5-2m 进深绿化露台，露台端部以浅色金属框收边，内部种植本地爬藤或低维护灌木。标准层露台错位排列，形成连续流动的绿色线条。远景可见建筑表面覆盖一层半透明的\"绿色薄纱\"，近景是植物、金属和玻璃的三重层次。尤其适合滨水地块，绿植软化天际线。",
+        "images": [
+            "/assets/output/online_52d71989c0.png"
+        ],
+        "timestamp": 1779084283.0904472,
+        "type": "online",
+        "model": "gpt-image-2",
+        "provider_id": "apimart",
+        "provider_name": "APIMart",
+        "task_id": "task_01KRWTX0CT5PRW7W1Q9ESSY0AD",
+        "request_id": null,
+        "params": {
+            "provider_id": "apimart",
+            "model": "gpt-image-2",
+            "size": "2048x2048",
+            "quality": "auto",
+            "reference_images": [
+                {
+                    "url": "/assets/input/ai_ref_13a662330dbe.jpg",
+                    "name": "156.jpg",
+                    "role": ""
+                }
+            ]
+        },
+        "raw_usage": null
+    },
+    {
+        "prompt": "每层出挑露台嵌入立体绿化，植物从塔基攀缘至塔冠，建筑与植被互为表皮形成会呼吸的立面。\n\n将圣保罗双塔的\"森林搬进高层\"逻辑适配到琶洲。每户南向或东南向设置 1.5-2m 进深绿化露台，露台端部以浅色金属框收边，内部种植本地爬藤或低维护灌木。标准层露台错位排列，形成连续流动的绿色线条。远景可见建筑表面覆盖一层半透明的\"绿色薄纱\"，近景是植物、金属和玻璃的三重层次。尤其适合滨水地块，绿植软化天际线。",
+        "images": [
+            "/assets/output/online_ecbd770b9d.png"
+        ],
+        "timestamp": 1779084149.1965358,
+        "type": "online",
+        "model": "gpt-image-2",
+        "provider_id": "apimart",
+        "provider_name": "APIMart",
+        "task_id": "task_01KRWTNAH3MEJ45E1NQ6RDQ71Z",
+        "request_id": null,
+        "params": {
+            "provider_id": "apimart",
+            "model": "gpt-image-2",
+            "size": "2048x2048",
+            "quality": "auto",
+            "reference_images": []
+        },
+        "raw_usage": null
+    },
+    {
+        "prompt": "每层出挑露台嵌入立体绿化，植物从塔基攀缘至塔冠，建筑与植被互为表皮形成会呼吸的立面。\n\n将圣保罗双塔的\"森林搬进高层\"逻辑适配到琶洲。每户南向或东南向设置 1.5-2m 进深绿化露台，露台端部以浅色金属框收边，内部种植本地爬藤或低维护灌木。标准层露台错位排列，形成连续流动的绿色线条。远景可见建筑表面覆盖一层半透明的\"绿色薄纱\"，近景是植物、金属和玻璃的三重层次。尤其适合滨水地块，绿植软化天际线。",
+        "images": [
+            "/assets/output/online_6e0275b6aa.png"
+        ],
+        "timestamp": 1779083990.115397,
+        "type": "online",
+        "model": "gpt-image-2",
+        "provider_id": "apimart",
+        "provider_name": "APIMart",
+        "task_id": "task_01KRWTG8S2JTNHMZGF5JMH6T8M",
+        "request_id": null,
+        "params": {
+            "provider_id": "apimart",
+            "model": "gpt-image-2",
+            "size": "2048x2048",
+            "quality": "auto",
+            "reference_images": []
+        },
+        "raw_usage": null
+    },
+    {
+        "prompt": "1building",
+        "images": [
+            "/assets/output/online_713336ab8e.png"
+        ],
+        "timestamp": 1779075123.5180058,
+        "type": "online",
+        "model": "gpt-image-2",
+        "provider_id": "api",
+        "provider_name": "新 API 平台",
+        "task_id": null,
+        "request_id": null,
+        "params": {
+            "provider_id": "api",
+            "model": "gpt-image-2",
+            "size": "1024x1024",
+            "quality": "auto",
+            "reference_images": [
+                {
+                    "url": "/assets/input/ai_ref_bc42d37db5b7.jpg",
+                    "name": "豪宅阅片室 ｜2025谁才是上海豪宅的排面？_2_松弛的何工_来自小红书网页版.jpg",
+                    "role": ""
+                }
+            ]
+        },
+        "raw_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 1343,
+            "input_tokens": 578,
+            "output_tokens": 765,
+            "input_tokens_details": {
+                "cached_tokens": 0,
+                "text_tokens": 18,
+                "audio_tokens": 0,
+                "image_tokens": 560
+            }
+        }
+    },
+    {
+        "prompt": "参考图2的风格和整体氛围，将图1转换为类似图2的风格和氛围。保持图1的核心轮廓和体量，保持图1的视角不变。出图结果长宽比以图1为准",
+        "images": [
+            "/assets/output/online_acb3460923.png"
+        ],
+        "timestamp": 1779070671.2774625,
+        "type": "online",
+        "model": "gpt-image-2",
+        "provider_id": "api",
+        "provider_name": "新 API 平台",
+        "task_id": null,
+        "request_id": null,
+        "params": {
+            "provider_id": "api",
+            "model": "gpt-image-2",
+            "size": "2048x2048",
+            "quality": "auto",
+            "reference_images": [
+                {
+                    "url": "/assets/input/ai_ref_a2a4c89d9c3a.png",
+                    "name": "微信图片_2026-05-14_180918_117.png",
+                    "role": ""
+                },
+                {
+                    "url": "/assets/input/ai_ref_7c0ecd8cc786.png",
+                    "name": "online-image-1778842043798.png",
+                    "role": ""
+                }
+            ]
+        },
+        "raw_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 4818,
+            "input_tokens": 1250,
+            "output_tokens": 3568,
+            "input_tokens_details": {
+                "cached_tokens": 0,
+                "text_tokens": 130,
+                "audio_tokens": 0,
+                "image_tokens": 1120
+            }
+        }
+    },
+    {
+        "prompt": "参考图2的风格和整体氛围，将图1转换为类似图2的风格和氛围。保持图1的核心轮廓和体量，保持图1的视角不变。出图结果长宽比以图1为准",
+        "images": [
+            "/assets/output/online_fab4b5f27d.png"
+        ],
+        "timestamp": 1779070565.2582784,
+        "type": "online",
+        "model": "gpt-image-2",
+        "provider_id": "api",
+        "provider_name": "新 API 平台",
+        "task_id": null,
+        "request_id": null,
+        "params": {
+            "provider_id": "api",
+            "model": "gpt-image-2",
+            "size": "2048x2048",
+            "quality": "auto",
+            "reference_images": [
+                {
+                    "url": "/assets/input/ai_ref_a2a4c89d9c3a.png",
+                    "name": "微信图片_2026-05-14_180918_117.png",
+                    "role": ""
+                },
+                {
+                    "url": "/assets/input/ai_ref_7c0ecd8cc786.png",
+                    "name": "online-image-1778842043798.png",
+                    "role": ""
+                }
+            ]
+        },
+        "raw_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 4818,
+            "input_tokens": 1250,
+            "output_tokens": 3568,
+            "input_tokens_details": {
+                "cached_tokens": 0,
+                "text_tokens": 130,
+                "audio_tokens": 0,
+                "image_tokens": 1120
+            }
+        }
+    },
+    {
+        "prompt": "参考图2的风格和整体氛围，将图1转换为类似图2的风格和氛围。保持图1的核心轮廓和体量，保持图1的视角不变。出图结果长宽比以图1为准",
+        "images": [
+            "/assets/output/online_37884b82ce.png"
+        ],
+        "timestamp": 1779070441.6989625,
+        "type": "online",
+        "model": "gpt-image-2",
+        "provider_id": "api",
+        "provider_name": "新 API 平台",
+        "task_id": null,
+        "request_id": null,
+        "params": {
+            "provider_id": "api",
+            "model": "gpt-image-2",
+            "size": "2048x2048",
+            "quality": "auto",
+            "reference_images": [
+                {
+                    "url": "/assets/input/ai_ref_a2a4c89d9c3a.png",
+                    "name": "微信图片_2026-05-14_180918_117.png",
+                    "role": ""
+                },
+                {
+                    "url": "/assets/input/ai_ref_7c0ecd8cc786.png",
+                    "name": "online-image-1778842043798.png",
+                    "role": ""
+                }
+            ]
+        },
+        "raw_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 4818,
+            "input_tokens": 1250,
+            "output_tokens": 3568,
+            "input_tokens_details": {
+                "cached_tokens": 0,
+                "text_tokens": 130,
+                "audio_tokens": 0,
+                "image_tokens": 1120
+            }
+        }
+    },
+    {
+        "prompt": "1building",
+        "images": [
+            "/assets/output/online_bc0e8f27db.png"
+        ],
+        "timestamp": 1779069874.591645,
+        "type": "online",
+        "model": "gpt-image-2",
+        "provider_id": "api",
+        "provider_name": "新 API 平台",
+        "task_id": null,
+        "request_id": null,
+        "params": {
+            "provider_id": "api",
+            "model": "gpt-image-2",
+            "size": "1024x1024",
+            "quality": "auto",
+            "reference_images": []
+        },
+        "raw_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 783,
+            "input_tokens": 18,
+            "output_tokens": 765,
+            "input_tokens_details": {
+                "cached_tokens": 0,
+                "text_tokens": 18,
+                "audio_tokens": 0,
+                "image_tokens": 0
+            }
+        }
+    },
+    {
+        "prompt": "1building",
+        "images": [
+            "/assets/output/online_a802c910c3.png"
+        ],
+        "timestamp": 1779069451.0929368,
+        "type": "online",
+        "model": "gpt-image-2",
+        "provider_id": "api",
+        "provider_name": "新 API 平台",
+        "task_id": null,
+        "request_id": null,
+        "params": {
+            "provider_id": "api",
+            "model": "gpt-image-2",
+            "size": "1024x1024",
+            "quality": "auto",
+            "reference_images": []
+        },
+        "raw_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 783,
+            "input_tokens": 18,
+            "output_tokens": 765,
+            "input_tokens_details": {
+                "cached_tokens": 0,
+                "text_tokens": 18,
+                "audio_tokens": 0,
+                "image_tokens": 0
+            }
+        }
+    },
+    {
+        "prompt": "1building",
+        "images": [
+            "/assets/output/online_563248eee9.png"
+        ],
+        "timestamp": 1779069316.336656,
+        "type": "online",
+        "model": "gpt-image-2",
+        "provider_id": "api",
+        "provider_name": "新 API 平台",
+        "task_id": null,
+        "request_id": null,
+        "params": {
+            "provider_id": "api",
+            "model": "gpt-image-2",
+            "size": "1024x1024",
+            "quality": "auto",
+            "reference_images": []
+        },
+        "raw_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 783,
+            "input_tokens": 18,
+            "output_tokens": 765,
+            "input_tokens_details": {
+                "cached_tokens": 0,
+                "text_tokens": 18,
+                "audio_tokens": 0,
+                "image_tokens": 0
+            }
+        }
+    }
+]
