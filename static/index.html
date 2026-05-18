@@ -480,6 +480,13 @@
                     </svg>
                     <span class="nav-text" data-i18n="nav.canvas">鏃犻檺鐢诲竷</span>
                 </div>
+                <div class="nav-item" onclick="switchUI(this, 'library')">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    <span class="nav-text" data-i18n="nav.library">资源库</span>
+                </div>
             </nav>
 
             <div class="side-actions">
@@ -554,6 +561,7 @@
             <iframe id="frame-online" data-src="/static/online.html?v=20260512-i18n2" scrolling="yes"></iframe>
             <iframe id="frame-gpt-chat" data-src="/static/gpt-chat.html?v=20260514-provider-chat-models" scrolling="yes"></iframe>
             <iframe id="frame-canvas" data-src="/static/canvas.html?v=20260518-canvas-fixes" scrolling="yes"></iframe>
+            <iframe id="frame-library" data-src="/static/library.html?v=20260518-resource-library" scrolling="yes"></iframe>
             <iframe id="frame-api-settings" data-src="/static/api-settings.html?v=20260517-provider-fetch-form2" scrolling="yes"></iframe>
             <iframe id="frame-comfyui-settings" data-src="/static/comfyui-settings.html?v=20260515-workflow-refresh" scrolling="yes"></iframe>
 
@@ -587,7 +595,7 @@
         localStorage.setItem("client_id", CID);
         const ACTIVE_PAGE_KEY = 'studio_active_page';
         const DEFAULT_PAGE_ID = 'zimage';
-        const PAGE_IDS = ['zimage','enhance','klein','angle','online','gpt-chat','canvas','api-settings','comfyui-settings'];
+        const PAGE_IDS = ['zimage','enhance','klein','angle','online','gpt-chat','canvas','library','api-settings','comfyui-settings'];
 
         function switchUI(el, id, options = {}) {
             if(!PAGE_IDS.includes(id)) id = DEFAULT_PAGE_ID;
