@@ -5,6 +5,7 @@ import urllib.request
 import urllib.parse
 import urllib.error
 import os
+import sys
 import re
 import random
 import time
@@ -158,10 +159,18 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str = None):
 # --- 配置区域 ---
 
 CLIENT_ID = str(uuid.uuid4())
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-WORKFLOW_DIR = os.path.join(BASE_DIR, "workflows")
+
+# PyInstaller 打包模式适配
+if getattr(sys, 'frozen', False):
+    BUNDLE_DIR = sys._MEIPASS
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BUNDLE_DIR = os.path.dirname(os.path.abspath(__file__))
+    BASE_DIR = BUNDLE_DIR
+
+WORKFLOW_DIR = os.path.join(BUNDLE_DIR, "workflows")
 WORKFLOW_PATH = os.path.join(WORKFLOW_DIR, "Z-Image.json")
-STATIC_DIR = os.path.join(BASE_DIR, "static")
+STATIC_DIR = os.path.join(BUNDLE_DIR, "static")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 OUTPUT_INPUT_DIR = os.path.join(ASSETS_DIR, "input")
@@ -671,8 +680,9 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(ASSETS_DIR, exist_ok=True)
 os.makedirs(OUTPUT_INPUT_DIR, exist_ok=True)
 os.makedirs(OUTPUT_OUTPUT_DIR, exist_ok=True)
-os.makedirs(STATIC_DIR, exist_ok=True)
-os.makedirs(WORKFLOW_DIR, exist_ok=True)
+if not getattr(sys, 'frozen', False):
+    os.makedirs(STATIC_DIR, exist_ok=True)
+    os.makedirs(WORKFLOW_DIR, exist_ok=True)
 os.makedirs(CONVERSATION_DIR, exist_ok=True)
 os.makedirs(CANVAS_DIR, exist_ok=True)
 
