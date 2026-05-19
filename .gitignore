@@ -6,3 +6,17 @@ python/
 get-pip.py
 dist/
 build/
+
+# local tool state
+.claude/settings.local.json
+
+# app runtime data
+history.json
+data/api_providers.json
+data/canvases/
+data/conversations/
+data/library.json
+data/library/
+assets/input/
+assets/output/
+output/
