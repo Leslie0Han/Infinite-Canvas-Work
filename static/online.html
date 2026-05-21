@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/static/logo.png" type="image/png">
-    <title>在线生图</title>
+    <title>鍦ㄧ嚎鐢熷浘</title>
     <script>
         (function(){
             try {
@@ -74,7 +74,7 @@
     <div class="container-box min-h-screen flex flex-col">
         <header class="flex justify-between items-end mb-16">
             <div class="space-y-1">
-                <h1 class="text-4xl font-extrabold tracking-tighter italic" data-i18n="online.title">在线生图</h1>
+                <h1 class="text-4xl font-extrabold tracking-tighter italic" data-i18n="online.title">鍦ㄧ嚎鐢熷浘</h1>
                 <p class="text-[10px] font-bold uppercase tracking-[0.4em] text-gray-400">GPT / NANO BANANA IMAGE STUDIO</p>
             </div>
             <nav class="hidden md:flex gap-8 text-[11px] font-bold uppercase tracking-widest text-gray-400">
@@ -89,7 +89,7 @@
                         <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
                         <span class="text-[10px] font-black uppercase tracking-widest">Prompt</span>
                     </div>
-                    <textarea id="promptInput" rows="5" class="nano-input w-full p-6 rounded-3xl text-sm outline-none resize-none placeholder-gray-300" placeholder="输入想生成或编辑的画面..." data-i18n-placeholder="online.promptPlaceholder"></textarea>
+                    <textarea id="promptInput" rows="5" class="nano-input w-full p-6 rounded-3xl text-sm outline-none resize-none placeholder-gray-300" placeholder="杈撳叆鎯崇敓鎴愭垨缂栬緫鐨勭敾闈?.." data-i18n-placeholder="online.promptPlaceholder"></textarea>
                 </section>
 
                 <section class="space-y-4">
@@ -101,17 +101,17 @@
                         <div id="drop-zone-1" onclick="document.getElementById('file1').click()" class="upload-item group aspect-square rounded-2xl flex flex-col items-center justify-center cursor-pointer">
                             <input type="file" id="file1" accept="image/*" class="hidden" onchange="handleFile(this.files[0],1)">
                             <i data-lucide="plus" class="w-5 h-5 text-gray-300 group-hover:text-black"></i><span class="text-[9px] mt-2 font-bold text-gray-400 uppercase">Main</span>
-                            <img id="prev1" class="preview-img hidden"><button id="del1" onclick="clearSlot(1,event)" class="hidden absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full shadow-sm z-10">×</button>
+                            <img id="prev1" class="preview-img hidden"><button id="del1" onclick="clearSlot(1,event)" class="hidden absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full shadow-sm z-10">脳</button>
                         </div>
                         <div id="drop-zone-2" onclick="document.getElementById('file2').click()" class="upload-item group aspect-square rounded-2xl flex flex-col items-center justify-center cursor-pointer">
                             <input type="file" id="file2" accept="image/*" class="hidden" onchange="handleFile(this.files[0],2)">
                             <i data-lucide="plus" class="w-5 h-5 text-gray-300 group-hover:text-black"></i><span class="text-[9px] mt-2 font-bold text-gray-400 uppercase">Aux A</span>
-                            <img id="prev2" class="preview-img hidden"><button id="del2" onclick="clearSlot(2,event)" class="hidden absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full shadow-sm z-10">×</button>
+                            <img id="prev2" class="preview-img hidden"><button id="del2" onclick="clearSlot(2,event)" class="hidden absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full shadow-sm z-10">脳</button>
                         </div>
                         <div id="drop-zone-3" onclick="document.getElementById('file3').click()" class="upload-item group aspect-square rounded-2xl flex flex-col items-center justify-center cursor-pointer">
                             <input type="file" id="file3" accept="image/*" class="hidden" onchange="handleFile(this.files[0],3)">
                             <i data-lucide="plus" class="w-5 h-5 text-gray-300 group-hover:text-black"></i><span class="text-[9px] mt-2 font-bold text-gray-400 uppercase">Aux B</span>
-                            <img id="prev3" class="preview-img hidden"><button id="del3" onclick="clearSlot(3,event)" class="hidden absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full shadow-sm z-10">×</button>
+                            <img id="prev3" class="preview-img hidden"><button id="del3" onclick="clearSlot(3,event)" class="hidden absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full shadow-sm z-10">脳</button>
                         </div>
                     </div>
                 </section>
@@ -139,29 +139,29 @@
                                 <option value="1k" selected>1K</option>
                                 <option value="2k">2K</option>
                                 <option value="4k">4K</option>
-                                <option value="custom" data-i18n="online.customSize">自定义尺寸</option>
+                                <option value="custom" data-i18n="online.customSize">鑷畾涔夊昂瀵?/option>
                             </select>
                             <span class="size-pair with-fit">
-                                <input id="sizeCustomWidth" class="size-custom" type="number" min="64" step="64" placeholder="宽度" data-i18n-placeholder="online.width" oninput="setCustomSize()">
-                                <input id="sizeCustomHeight" class="size-custom" type="number" min="64" step="64" placeholder="高度" data-i18n-placeholder="online.height" oninput="setCustomSize()">
-                                <button id="fitImageSizeBtn" class="size-fit-btn" type="button" onclick="fitCustomSizeToImage(event)">适配图片</button>
+                                <input id="sizeCustomWidth" class="size-custom" type="number" min="64" step="64" placeholder="瀹藉害" data-i18n-placeholder="online.width" oninput="setCustomSize()">
+                                <input id="sizeCustomHeight" class="size-custom" type="number" min="64" step="64" placeholder="楂樺害" data-i18n-placeholder="online.height" oninput="setCustomSize()">
+                                <button id="fitImageSizeBtn" class="size-fit-btn" type="button" onclick="fitCustomSizeToImage(event)">閫傞厤鍥剧墖</button>
                             </span>
                         </label>
                         <label id="ratioField" class="size-field">
                             <select id="ratioSelect" class="size-select" onchange="setRatio(this.value)">
-                                <option value="" data-i18n="online.emptyRatio">比例为空</option>
-                                <option value="square" selected data-i18n="online.square">1:1 方图</option>
-                                <option value="portrait" data-i18n="online.portrait">2:3 竖图</option>
-                                <option value="landscape" data-i18n="online.landscape">3:2 横图</option>
-                                <option value="portrait43">3:4 竖图</option>
-                                <option value="landscape43">4:3 横图</option>
-                                <option value="story" data-i18n="online.story">9:16 竖屏</option>
-                                <option value="wide" data-i18n="online.wide">16:9 宽屏</option>
-                                <option value="custom" data-i18n="online.customRatio">自定义比例</option>
+                                <option value="" data-i18n="online.emptyRatio">姣斾緥涓虹┖</option>
+                                <option value="square" selected data-i18n="online.square">1:1 鏂瑰浘</option>
+                                <option value="portrait" data-i18n="online.portrait">2:3 绔栧浘</option>
+                                <option value="landscape" data-i18n="online.landscape">3:2 妯浘</option>
+                                <option value="portrait43">3:4 绔栧浘</option>
+                                <option value="landscape43">4:3 妯浘</option>
+                                <option value="story" data-i18n="online.story">9:16 绔栧睆</option>
+                                <option value="wide" data-i18n="online.wide">16:9 瀹藉睆</option>
+                                <option value="custom" data-i18n="online.customRatio">鑷畾涔夋瘮渚?/option>
                             </select>
                             <span class="size-pair">
-                                <input id="ratioCustomWidth" class="size-custom" type="number" min="1" step="1" placeholder="宽" data-i18n-placeholder="online.ratioWidth" oninput="setCustomRatio()">
-                                <input id="ratioCustomHeight" class="size-custom" type="number" min="1" step="1" placeholder="高" data-i18n-placeholder="online.ratioHeight" oninput="setCustomRatio()">
+                                <input id="ratioCustomWidth" class="size-custom" type="number" min="1" step="1" placeholder="瀹? data-i18n-placeholder="online.ratioWidth" oninput="setCustomRatio()">
+                                <input id="ratioCustomHeight" class="size-custom" type="number" min="1" step="1" placeholder="楂? data-i18n-placeholder="online.ratioHeight" oninput="setCustomRatio()">
                             </span>
                         </label>
                     </div>
@@ -496,7 +496,7 @@
                 const result = await fetch('/api/online-image', {
                     method:'POST', headers:{'Content-Type':'application/json'},
                     body:JSON.stringify({ prompt, provider_id:provider, model:selectedModel, size:currentSize(), reference_images:Object.values(refs).filter(Boolean) })
-                }).then(async r => { if(!r.ok) throw new Error((await r.json()).detail || '生成失败'); return r.json(); });
+                }).then(async r => { if(!r.ok) throw new Error((await r.json()).detail || '鐢熸垚澶辫触'); return r.json(); });
                 currentResult = result; out.src = result.images[0]; out.classList.remove('hidden'); dl.href = result.images[0]; dl.classList.remove('hidden'); renderImageCard(result, true);
             } catch(err) {
                 alert(err.message || 'Generation failed'); placeholder.classList.remove('hidden');
@@ -558,7 +558,7 @@
             const url = currentLightboxData?.images?.[0];
             if(!url) return;
             const res = await fetch(url);
-            if(!res.ok) return alert('下载失败');
+            if(!res.ok) return alert('涓嬭浇澶辫触');
             const blob = await res.blob();
             const clean = url.split('?')[0];
             const ext = clean.includes('.') ? clean.split('.').pop() : 'png';

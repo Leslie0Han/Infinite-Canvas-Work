@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/static/logo.png" type="image/png">
-    <title>Flux Klein | 极简一体化终端</title>
+    <title>Flux Klein | 鏋佺畝涓€浣撳寲缁堢</title>
     <script>
         (function(){
             try {
@@ -221,7 +221,7 @@
                             <span class="text-[9px] mt-2 font-bold text-gray-400 uppercase">Main</span>
                             <img id="prev1" class="preview-img hidden">
                             <button id="del1" onclick="clearSlot(1, event)"
-                                class="hidden absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full shadow-sm z-10 flex items-center justify-center text-xs">×</button>
+                                class="hidden absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full shadow-sm z-10 flex items-center justify-center text-xs">脳</button>
                         </div>
                         <div id="drop-zone-2" onclick="document.getElementById('file2').click()"
                             class="upload-item group aspect-square rounded-2xl flex flex-col items-center justify-center cursor-pointer">
@@ -230,7 +230,7 @@
                             <span class="text-[9px] mt-2 font-bold text-gray-400 uppercase">Aux A</span>
                             <img id="prev2" class="preview-img hidden">
                             <button id="del2" onclick="clearSlot(2, event)"
-                                class="hidden absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full shadow-sm z-10 flex items-center justify-center text-xs">×</button>
+                                class="hidden absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full shadow-sm z-10 flex items-center justify-center text-xs">脳</button>
                         </div>
                         <div id="drop-zone-3" onclick="document.getElementById('file3').click()"
                             class="upload-item group aspect-square rounded-2xl flex flex-col items-center justify-center cursor-pointer">
@@ -239,7 +239,7 @@
                             <span class="text-[9px] mt-2 font-bold text-gray-400 uppercase">Aux B</span>
                             <img id="prev3" class="preview-img hidden">
                             <button id="del3" onclick="clearSlot(3, event)"
-                                class="hidden absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full shadow-sm z-10 flex items-center justify-center text-xs">×</button>
+                                class="hidden absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full shadow-sm z-10 flex items-center justify-center text-xs">脳</button>
                         </div>
                     </div>
                 </section>
@@ -267,7 +267,7 @@
                                 <div id="loraTrack" class="w-full h-full bg-gray-200 rounded-full transition-colors duration-200"></div>
                                 <div id="loraThumb" class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"></div>
                             </div>
-                            <span class="text-[10px] font-bold text-gray-600 uppercase tracking-wider" data-i18n="studio.detailLora">细节增强 LoRA</span>
+                            <span class="text-[10px] font-bold text-gray-600 uppercase tracking-wider" data-i18n="studio.detailLora">缁嗚妭澧炲己 LoRA</span>
                         </label>
                         <div id="loraStrengthRow" class="hidden flex-col gap-1.5">
                             <div class="flex justify-between">
@@ -406,7 +406,7 @@
         let engine = 'local';
         let loraEnabled = false;
 
-        // 引擎切换
+        // 寮曟搸鍒囨崲
         function setEngine(mode) {
             engine = mode;
             document.getElementById('localBtn').classList.toggle('active', mode === 'local');
@@ -438,7 +438,7 @@
             bar.classList.toggle('visible', visible);
         }
 
-        // 拖拽上传
+        // 鎷栨嫿涓婁紶
         let hoveredSlot = null;
         [1, 2, 3].forEach(id => {
             const zone = document.getElementById(`drop-zone-${id}`);

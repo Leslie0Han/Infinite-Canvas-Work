@@ -2837,6 +2837,17 @@
                         {type:'llm', label:'LLM', icon:'message-square-text'}
                     ];
                 }
+                if(CANVAS_GENERATOR_TYPES.includes(node.type)){
+                    return [
+                        {type:'output', label:'Output', icon:'circle-dot'},
+                        ...(CANVAS_IMAGE_OUTPUT_TYPES.includes(node.type) ? [
+                            {type:'generator', label:tr('canvas.apiGenerate'), icon:'wand-sparkles'},
+                            {type:'msgen', label:tr('canvas.modelscopeGenerate'), icon:'cloud-lightning'},
+                            {type:'comfy', label:tr('canvas.comfyGenerate'), icon:'workflow'},
+                            {type:'video', label:tr('canvas.videoGenerateNode'), icon:'clapperboard'}
+                        ] : [])
+                    ];
+                }
                 return [];
             }
             if(CANVAS_GENERATOR_TYPES.includes(node.type) || node.type === 'llm'){
@@ -2857,8 +2868,10 @@
             linkCreateState = state;
             createMenu.classList.remove('open');
             linkCreateMenu.innerHTML = options.map(opt => `<button class="menu-btn" data-link-create="${escapeAttr(opt.type)}"><i data-lucide="${escapeAttr(opt.icon)}" class="w-4 h-4"></i><span>${escapeHtml(opt.label)}</span></button>`).join('');
-            linkCreateMenu.style.left = `${clientX}px`;
-            linkCreateMenu.style.top = `${clientY}px`;
+            const menuWidth = 190;
+            const menuHeight = Math.min(360, options.length * 38 + 16);
+            linkCreateMenu.style.left = `${Math.max(10, Math.min(window.innerWidth - menuWidth - 10, clientX))}px`;
+            linkCreateMenu.style.top = `${Math.max(10, Math.min(window.innerHeight - menuHeight - 10, clientY))}px`;
             linkCreateMenu.classList.add('open');
             linkCreateMenu.querySelectorAll('[data-link-create]').forEach(btn => {
                 btn.onclick = e => {
@@ -4072,9 +4085,17 @@
             el.querySelector('.resize-handle').onmousedown = e => { if(e.button === 0 && !e.shiftKey) startNodeResize(e, node); };
             el.ondragstart = e => { e.preventDefault(); e.stopPropagation(); };
             const out = el.querySelector('.port.out');
-            if(out) out.onmousedown = e => { if(e.button === 0 && !e.shiftKey) startLink(e, node.id, 'out'); };
+            if(out) {
+                const startOutLink = e => { if(e.button === 0 && !e.shiftKey) startLink(e, node.id, 'out'); };
+                if(window.PointerEvent) out.onpointerdown = startOutLink;
+                else out.onmousedown = startOutLink;
+            }
             const inp = el.querySelector('.port.in');
-            if(inp) inp.onmousedown = e => { if(e.button === 0 && !e.shiftKey) startLink(e, node.id, 'in'); };
+            if(inp) {
+                const startInLink = e => { if(e.button === 0 && !e.shiftKey) startLink(e, node.id, 'in'); };
+                if(window.PointerEvent) inp.onpointerdown = startInLink;
+                else inp.onmousedown = startInLink;
+            }
             return el;
         }
         function defaultNodeSize(type){
@@ -6989,7 +7010,19 @@
         }
         function groupSelectedImages(){
             if(!ensureCanvas()) return;
-            const targets = [...selected].map(id => nodes.find(n => n.id === id)).filter(n => n?.type === 'image' || n?.type === 'prompt');
+            const targetMap = new Map();
+            [...selected].map(id => nodes.find(n => n.id === id)).filter(Boolean).forEach(n => {
+                if(n.type === 'image' || n.type === 'prompt') {
+                    targetMap.set(n.id, n);
+                    return;
+                }
+                if(n.type === 'group' || n.type === 'promptGroup') {
+                    (n.items || []).map(id => nodes.find(item => item.id === id)).filter(Boolean).forEach(child => {
+                        if(child.type === 'image' || child.type === 'prompt') targetMap.set(child.id, child);
+                    });
+                }
+            });
+            const targets = [...targetMap.values()];
             let group;
             pushUndo();
             if(targets.length){
@@ -7007,6 +7040,17 @@
             refreshGeneratorInputViews();
             render();
             scheduleSave();
+        }
+        function selectAllGroupableNodes(){
+            if(!canvas) return false;
+            const ids = nodes
+                .filter(n => n.type === 'image' || n.type === 'prompt' || n.type === 'group' || n.type === 'promptGroup')
+                .map(n => n.id);
+            if(!ids.length) return false;
+            selected.clear();
+            ids.forEach(id => selected.add(id));
+            render();
+            return true;
         }
         function nodeBounds(ids){
             const rects = ids.map(id => {
@@ -7253,21 +7297,28 @@
             renderSelectionHub();
         }
         function startLink(e, originId, originKind){
+            e.preventDefault();
             e.stopPropagation();
+            try {
+                if(e.pointerId !== undefined && e.currentTarget?.setPointerCapture) {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                }
+            } catch(_) {}
             originKind = originKind || 'out';
             const src = portPoint(originId, originKind);
             const source = nodes.find(n => n.id === originId);
             tempLink = {from:originId, originKind, x1:src.x, y1:src.y, x2:src.x, y2:src.y};
-            window.onmousemove = e2 => {
+            const moveLink = e2 => {
                 const p = screenToWorld(e2.clientX, e2.clientY);
                 tempLink.x2 = p.x;
                 tempLink.y2 = p.y;
                 renderLinks();
             };
-            window.onmouseup = e2 => {
+            const finishLink = e2 => {
                 const targetKind = originKind === 'out' ? 'in' : 'out';
                 const targetPort = nearestPort(e2.clientX, e2.clientY, targetKind);
                 const target = targetPort?.closest('.node');
+                let didConnect = false;
                 if(target){
                     const targetId = target.dataset.id;
                     const fromId = originKind === 'out' ? originId : targetId;
@@ -7277,9 +7328,13 @@
                         syncGeneratorInputs();
                         scheduleSave();
                         render();
+                        didConnect = true;
                     }
-                } else if(originKind === 'out'){
-                    if(source && CANVAS_GENERATOR_TYPES.includes(source.type)){
+                }
+                if(!didConnect && originKind === 'out'){
+                    if(openLinkCreateMenu(originId, originKind, e2.clientX, e2.clientY)){
+                        // Menu opened.
+                    } else if(source && CANVAS_GENERATOR_TYPES.includes(source.type)){
                         const p = screenToWorld(e2.clientX, e2.clientY);
                         pushUndo();
                         const out = {id:uid('out'), type:'output', x:p.x, y:p.y - 63, images:[]};
@@ -7288,17 +7343,33 @@
                         syncGeneratorInputs();
                         scheduleSave();
                         render();
-                    } else {
-                        openLinkCreateMenu(originId, originKind, e2.clientX, e2.clientY);
                     }
-                } else if(originKind === 'in'){
+                } else if(!didConnect && originKind === 'in'){
                     openLinkCreateMenu(originId, originKind, e2.clientX, e2.clientY);
                 }
                 tempLink = null;
+                window.removeEventListener('mousemove', moveLink, true);
+                window.removeEventListener('mouseup', finishLink, true);
+                window.removeEventListener('pointermove', moveLink, true);
+                window.removeEventListener('pointerup', finishLink, true);
+                document.removeEventListener('mousemove', moveLink, true);
+                document.removeEventListener('mouseup', finishLink, true);
+                document.removeEventListener('pointermove', moveLink, true);
+                document.removeEventListener('pointerup', finishLink, true);
                 window.onmousemove = null;
                 window.onmouseup = null;
                 renderLinks();
             };
+            window.onmousemove = moveLink;
+            window.onmouseup = finishLink;
+            window.addEventListener('mousemove', moveLink, true);
+            window.addEventListener('mouseup', finishLink, true);
+            window.addEventListener('pointermove', moveLink, true);
+            window.addEventListener('pointerup', finishLink, true);
+            document.addEventListener('mousemove', moveLink, true);
+            document.addEventListener('mouseup', finishLink, true);
+            document.addEventListener('pointermove', moveLink, true);
+            document.addEventListener('pointerup', finishLink, true);
         }
         function nearestPort(clientX, clientY, kind){
             const selector = `.port.${kind}`;
@@ -7802,6 +7873,15 @@
                 return;
             }
             if(e.key === 'Escape' && outputLightbox.classList.contains('open')) { closeOutputLightbox(); return; }
+            if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+                const tag = document.activeElement?.tagName;
+                if(tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
+                if(selectAllGroupableNodes()){
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                return;
+            }
             if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'g') { e.preventDefault(); groupSelectedImages(); }
             if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
                 // 在输入框/可编辑元素里时，让浏览器原生 Ctrl+C 工作

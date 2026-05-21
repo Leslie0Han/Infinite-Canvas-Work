@@ -1,101 +1,125 @@
-# Infinite-Canvas
-Supports comfyui/API calls/modelscope calls
+# Infinite Canvas Work
 
-详细教程：https://youtu.be/1y9ShTvgC_w
+AI 驱动的无限画布工作台，集成图像生成、LLM 对话、图片增强等功能。
 
-由于最近很多API网址关停，我找到一个稳定的网址：
+## 功能概览
 
-https://apimart.ai/register?aff=1uyAbb
+### 无限画布
+- 自由拖拽、缩放的画布界面
+- 支持多画布管理、回收站
+- 实时协作，在线人数显示
 
-【折扣码（daxiong）首次充值9折，可开发票。】
+### AI 图像生成
+- **ComfyUI 后端**：支持本地/远程 ComfyUI 实例，可配置多个后端自动切换
+- **在线 API**：支持 Flux、Z-Image 等在线图像生成服务
+- **工作流模板**：内置 Flux2-Klein、Z-Image、图像增强、超分辨率等 ComfyUI 工作流
 
+### LLM 对话
+- 多轮对话，支持会话管理
+- 流式输出（SSE）
+- 支持多种 LLM API 提供商
 
-5/13日更新：
-1. 修复了安装依赖的报错
-2. 增加了更便捷的API设置方式，现在可以全程在网页中设置，并且可以拉取模型一键添加
-3. LLM节点支持图片输入反推，可以使用modelscope的VL模型测试
-4. 增加了中英文切换
-5. 增加了自定义comfyui工作流的功能，可以自己设置需要的输入和要调整的参数，可以在无限画布的comfyui节点中调用。
-6. 增加了视频生成功能
-7. 修复了2k/4k生成报错问题
-8. 新增了生成节点可以通过output前后连接一键生成
+### 图片增强
+- AI 超分辨率放大
+- 图片对比预览
 
-5/14日更新：
-1. 修复mac的一些bug
-2. modelscope支持lora调用
-3. 支持OpenAI协议和异步协议（生成失败不扣费）
+### API 管理
+- 可视化配置多个 AI API 提供商
+- 连接测试、模型列表自动获取
+- 支持自定义 API 地址和密钥
 
-5/15日更新：
-1. 增加了循环组件和计数功能，可以将节点循环/并发运行N次，同时有提示词计数功能，可以设置提示词为：运行第二张卖点图。
-用法可以是：使用Gemini生成产品10个卖点提示词。用循环节点，增加提示词：运行第X张卖点图，输入给API节点，调用GPT生成，就可以一次性并发生成10个卖点图。
-2. 增加协议的验证按键，可以方便的验证自己的API平台是什么协议
-3. 修复了LLM节点的一些bug
-4. 上传了精简版的python，运行“安装依赖.bat”，完成之后，运行"run.bat"
-   
------
+### 其他功能
+- 图片上传 / 下载 / 历史记录
+- 多语言支持（i18n）
+- 响应式 Web 界面
 
-Detailed tutorial: https://youtu.be/1y9ShTvgC_w
+---
 
-Due to the recent shutdown of many API websites, I found a stable one:
+## 快速开始
 
-https://apimart.ai/register?aff=1uyAbb
+### 环境要求
 
-[Discount code (daxiong): 10% off your first top-up, invoice available.]
+- Python 3.10+
 
+### 安装
 
-May 13th Update:
+```bash
+git clone https://github.com/Leslie0Han/Infinite-Canvas-Work.git
+cd Infinite-Canvas-Work
+pip install -r requirements.txt
+```
 
-1. Fixed dependency installation errors.
+### 启动
 
-2. Added a more convenient API setup method; settings can now be configured entirely through the webpage, and models can be added with a single click.
+```bash
+python main.py
+```
 
-3. LLM nodes support image input for reverse engineering; VL models from ModelScope can be used for testing.
+或 Windows 双击 `启动服务.bat` / macOS 运行 `mac-启动服务.sh`
 
-4. Added Chinese/English switching functionality.
+服务默认运行在 **http://localhost:3000**
 
-5. Added the ability to customize ComfyUI workflows; users can set their own inputs and adjust parameters, and these workflows can be invoked within ComfyUI nodes on an infinite canvas.
+---
 
-6. Added video generation functionality.
+## 页面说明
 
-7. Fixed 2K/4K generation error issues.
+| 页面 | 路径 | 功能 |
+|------|------|------|
+| 首页 | `/` | 主入口，展示画布列表 |
+| 画布 | `/static/canvas.html` | 无限画布，拖拽编辑图片 |
+| 在线生成 | `/static/online.html` | 使用在线 API 生成图像 |
+| 图片增强 | `/static/enhance.html` | AI 超分辨率放大 |
+| Klein 生成 | `/static/klein.html` | Klein 模型图像生成 |
+| Z-Image | `/static/zimage.html` | Z-Image 模型生成 |
+| GPT 对话 | `/static/gpt-chat.html` | LLM 多轮对话 |
+| API 设置 | `/static/api-settings.html` | 配置 AI API 提供商 |
+| ComfyUI 设置 | `/static/comfyui-settings.html` | 配置 ComfyUI 后端地址 |
 
-8. Added the ability to generate videos with a single click by connecting output nodes before and after.
+---
 
-May 14th Update:
+## 配置说明
 
-1. Fixed some bugs on Mac.
+### API 提供商
 
-2. ModelScope supports LoRa calls.
+访问 `/static/api-settings.html` 配置：
 
-3. Supports OpenAI protocol and asynchronous protocol (no charge for generation failures).
+- **API 地址**：各服务商的 API 端点
+- **API 密钥**：对应服务的访问密钥
+- **模型列表**：支持的模型，可自动获取
 
-May 15th Update:
+### ComfyUI 后端
 
-1. Added a loop component and counting function, allowing nodes to run concurrently N times. It also includes a prompt word counting function, where the prompt word can be set to: "Run the second selling point image."
+访问 `/static/comfyui-settings.html` 配置：
 
-Usage: Use Gemini to generate 10 selling point prompt words for a product. Use the loop node, add the prompt word: "Run the Xth selling point image," input it to the API node, call GPT to generate, and you can generate 10 selling point images concurrently at once.
+- 支持多个 ComfyUI 实例
+- 自动健康检查与故障切换
+- 可指定每个实例的可用模型
 
-2. Added a protocol verification button for easy verification of your API platform's protocol.
+---
 
-3. Fixed some bugs in the LLM node.
+## 项目结构
 
-4. Uploaded a simplified version of Python. Run "安装依赖.bat", and then run "run.bat".
+```
+├── main.py              # 后端主程序 (FastAPI)
+├── static/              # 前端页面
+│   ├── index.html       # 首页
+│   ├── canvas.html      # 无限画布
+│   ├── online.html      # 在线生成
+│   ├── enhance.html     # 图片增强
+│   ├── gpt-chat.html    # LLM 对话
+│   └── ...
+├── workflows/           # ComfyUI 工作流模板
+├── data/                # 画布数据存储
+├── assets/              # 上传/生成的图片
+│   ├── input/           # 输入图片
+│   └── output/          # 输出图片
+├── requirements.txt     # Python 依赖
+├── 启动服务.bat          # Windows 启动脚本
+└── mac-启动服务.sh       # macOS 启动脚本
+```
 
+---
 
+## License
 
-<img width="1696" height="1350" alt="b68e144c5b04a322bfd035da4d89aba3" src="https://github.com/user-attachments/assets/0a6090fb-a8dd-4c3d-adee-b1f9233a2d91" />
-
-   
-<img width="1525" height="1473" alt="image" src="https://github.com/user-attachments/assets/6f61fcf9-746c-425b-9e36-cfc8d252da7c" />
-
-   <img width="1261" height="864" alt="image" src="https://github.com/user-attachments/assets/57f3e230-3134-488f-8179-d97e7d15383a" />
-<img width="1530" height="858" alt="image" src="https://github.com/user-attachments/assets/9990e42d-22d5-4a10-a1e1-ad35a634edd2" />
-
-<img width="1735" height="1400" alt="image" src="https://github.com/user-attachments/assets/d8328ff8-bbe0-4f1c-9ffa-7b56e8a1a51d" />
-<img width="2258" height="969" alt="image" src="https://github.com/user-attachments/assets/4a752d99-885d-4ba9-8b86-91b495786b5c" />
-
-
-<img width="1531" height="1374" alt="image" src="https://github.com/user-attachments/assets/0af79e38-0955-4740-9e65-5c9bb057f58c" />
-
-<img width="2196" height="1040" alt="image" src="https://github.com/user-attachments/assets/6d823668-cde2-4836-8332-1858efe5f520" />
-<img width="2214" height="771" alt="image" src="https://github.com/user-attachments/assets/52e10958-753f-45ba-a50e-3bbec27be436" />
+MIT

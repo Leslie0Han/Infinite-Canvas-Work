@@ -1,5 +1,29 @@
 #!/bin/bash
 cd "$(dirname "$0")"
+echo "============================================"
+echo "   Starting ComfyUI-API-Modelscope"
+echo "============================================"
+echo ""
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "[ERROR] Python 3 not found. Please install Python 3.10+ first."
+  echo "Download: https://www.python.org/downloads/"
+  echo ""
+  read -p "Press Enter to exit..."
+  exit 1
+fi
+
+if ! python3 - <<'PY' >/dev/null 2>&1
+import fastapi, uvicorn, httpx, PIL
+PY
+then
+  echo "[ERROR] Dependencies are missing."
+  echo "Please run: ./mac-安装依赖.sh"
+  echo ""
+  read -p "Press Enter to exit..."
+  exit 1
+fi
+
 LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null)"
 if [ -z "$LAN_IP" ]; then
   LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
@@ -9,27 +33,17 @@ if [ -z "$LAN_IP" ]; then
 fi
 APP_URL="http://${LAN_IP}:3000/"
 
-echo "Starting ComfyUI-API-Modelscope..."
 echo "Visit: ${APP_URL}"
 echo "Local: http://127.0.0.1:3000/"
 echo "Press Ctrl+C to stop."
 echo ""
 
-if [ ! -x ".venv/bin/python" ]; then
-    echo "Virtual environment not found. Creating .venv..."
-    python3 -m venv .venv
-fi
-
-if ! .venv/bin/python -c "import fastapi, uvicorn, requests, pydantic, multipart, httpx, PIL" >/dev/null 2>&1; then
-    echo "Installing dependencies..."
-    .venv/bin/python -m pip install --upgrade pip
-    .venv/bin/python -m pip install -r requirements.txt
-fi
-
 # Open browser after 3 seconds
 sleep 3 && open "${APP_URL}" &
 
-.venv/bin/python main.py
+python3 main.py
+EXIT_CODE=$?
 
 echo ""
-echo "Server stopped."
+echo "Server stopped. Exit code: ${EXIT_CODE}"
+read -p "Press Enter to exit..."

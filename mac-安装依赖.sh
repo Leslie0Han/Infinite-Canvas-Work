@@ -24,19 +24,21 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "[2/2] Installing from local packages folder..."
-if [ ! -x ".venv/bin/python" ]; then
-    python3 -m venv .venv
+if [ -d packages ]; then
+    python3 -m pip install --no-index --find-links=packages -r requirements.txt
+else
+    echo "[WARN] Local packages folder not found, using online install..."
+    false
 fi
-
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install --no-index --find-links=packages -r requirements.txt
 
 if [ $? -ne 0 ]; then
     echo ""
     echo "[WARN] Offline install failed, trying online..."
-    .venv/bin/python -m pip install -r requirements.txt
+    python3 -m pip install -r requirements.txt
 fi
 
 echo ""
 echo "Done. Run './mac-启动服务.sh' to start."
+echo "If macOS says permission denied, run:"
+echo "  chmod +x ./mac-安装依赖.sh ./mac-启动服务.sh"
 read -p "Press Enter to exit..."

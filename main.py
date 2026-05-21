@@ -5,6 +5,7 @@ import urllib.request
 import urllib.parse
 import urllib.error
 import os
+import sys
 import re
 import random
 import time
@@ -14,7 +15,6 @@ import logging
 import requests
 from typing import List, Dict, Any, Optional
 from threading import Lock
-from contextlib import asynccontextmanager
 import httpx
 from PIL import Image
 from io import BytesIO
@@ -52,15 +52,7 @@ class QuietAccessLogFilter(logging.Filter):
 
 logging.getLogger("uvicorn.access").addFilter(QuietAccessLogFilter())
 
-GLOBAL_LOOP = None
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global GLOBAL_LOOP
-    GLOBAL_LOOP = asyncio.get_running_loop()
-    yield
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -143,6 +135,12 @@ class ConnectionManager:
                 print(f"Personal message error for {client_id}: {e}")
 
 manager = ConnectionManager()
+GLOBAL_LOOP = None
+
+@app.on_event("startup")
+async def startup_event():
+    global GLOBAL_LOOP
+    GLOBAL_LOOP = asyncio.get_running_loop()
 
 @app.websocket("/ws/stats")
 async def websocket_endpoint(websocket: WebSocket, client_id: str = None):
@@ -161,10 +159,18 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str = None):
 # --- 配置区域 ---
 
 CLIENT_ID = str(uuid.uuid4())
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-WORKFLOW_DIR = os.path.join(BASE_DIR, "workflows")
+
+# PyInstaller 打包模式适配
+if getattr(sys, 'frozen', False):
+    BUNDLE_DIR = sys._MEIPASS
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BUNDLE_DIR = os.path.dirname(os.path.abspath(__file__))
+    BASE_DIR = BUNDLE_DIR
+
+WORKFLOW_DIR = os.path.join(BUNDLE_DIR, "workflows")
 WORKFLOW_PATH = os.path.join(WORKFLOW_DIR, "Z-Image.json")
-STATIC_DIR = os.path.join(BASE_DIR, "static")
+STATIC_DIR = os.path.join(BUNDLE_DIR, "static")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 OUTPUT_INPUT_DIR = os.path.join(ASSETS_DIR, "input")
@@ -184,7 +190,14 @@ HISTORY_LOCK = Lock()
 GLOBAL_CONFIG_LOCK = Lock()
 CONVERSATION_LOCK = Lock()
 CANVAS_LOCK = Lock()
+LIBRARY_LOCK = Lock()
 LOAD_LOCK = Lock()
+
+LIBRARY_DIR = os.path.join(DATA_DIR, "library")
+LIBRARY_SOURCES_FILE = os.path.join(DATA_DIR, "library.json")
+LIBRARY_IMAGES_FILE = os.path.join(LIBRARY_DIR, "images.json")
+LIBRARY_CATEGORIES_FILE = os.path.join(LIBRARY_DIR, "categories.json")
+os.makedirs(LIBRARY_DIR, exist_ok=True)
 NEXT_TASK_ID = 1
 
 PROVIDER_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{2,40}$")
@@ -503,6 +516,88 @@ def save_api_providers(providers):
         with open(API_PROVIDERS_FILE, "w", encoding="utf-8") as f:
             json.dump(providers, f, ensure_ascii=False, indent=2)
 
+# --- 资源库辅助函数 ---
+
+PRESET_CATEGORIES = [
+    "住宅", "商业", "办公", "文化建筑", "酒店", "教育", "医疗", "综合体",
+    "塔楼", "裙房", "展示区", "大堂/门厅", "样板间", "会所",
+    "景观", "广场/节点", "水景",
+    "鸟瞰", "人视", "夜景", "施工过程",
+]
+
+# AI 标签优先使用的预设词汇库（按类别分组，用于 prompt 和校验）
+PRESET_TAG_VOCAB = {
+    "建筑风格": ["现代风格", "新中式", "极简主义", "Art Deco", "后现代", "参数化", "工业风", "日式", "东南亚风格", "欧式", "美式", "有机建筑"],
+    "建筑形态": ["高层", "超高层", "多层", "低层", "独栋", "联排", "板楼", "点式", "弧形", "L型", "U型", "围合式", "退台", "悬挑", "架空"],
+    "外立面材质": ["玻璃幕墙", "石材", "涂料", "金属板", "铝板", "陶板", "真石漆", "GRC", "清水混凝土", "木材", "砖", "百叶", "格栅", "穿孔板"],
+    "景观元素": ["绿化带", "草坪", "乔木", "灌木", "花卉", "铺装", "步道", "水景", "喷泉", "雕塑", "座椅", "路灯", "景墙", "廊架", "亭子", "栈道"],
+    "室内空间": ["大堂", "电梯厅", "走廊", "楼梯", "卫生间", "厨房", "客厅", "卧室", "书房", "阳台", "飘窗", "中庭", "天井"],
+    "环境氛围": ["白天", "黄昏", "傍晚", "清晨", "晴天", "阴天", "雨天", "雪景", "绿意盎然", "秋色", "城市天际线", "山景", "湖景", "江景", "海景"],
+    "功能设施": ["停车场", "游泳池", "健身房", "儿童游乐", "商业街", "底商", "办公大堂", "会议室", "屋顶花园", "地下车库", "消防通道", "无障碍设施"],
+    "拍摄手法": ["特写", "细节", "全景", "局部", "仰视", "俯视", "对称构图", "透视", "广角", "长焦", "航拍"],
+}
+
+def _library_read_json(path, default):
+    if not os.path.exists(path):
+        return default
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return default
+
+def _library_write_json(path, data):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with LIBRARY_LOCK:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+def load_library_sources():
+    return _library_read_json(LIBRARY_SOURCES_FILE, [])
+
+def save_library_sources(sources):
+    _library_write_json(LIBRARY_SOURCES_FILE, sources)
+
+def load_library_images():
+    return _library_read_json(LIBRARY_IMAGES_FILE, [])
+
+def save_library_images(images):
+    _library_write_json(LIBRARY_IMAGES_FILE, images)
+
+def load_library_categories():
+    data = _library_read_json(LIBRARY_CATEGORIES_FILE, None)
+    if data is None:
+        return {"presets": PRESET_CATEGORIES[:], "custom": []}
+    if "presets" not in data:
+        data["presets"] = PRESET_CATEGORIES[:]
+    return data
+
+def save_library_categories(cats):
+    _library_write_json(LIBRARY_CATEGORIES_FILE, cats)
+
+def _snap_to_preset(value, presets):
+    """将 AI 返回的分类值校验到允许的预设列表中。精确匹配优先，否则前缀/包含匹配，最后回退到第一个。"""
+    if not value:
+        return presets[0] if presets else ""
+    value = value.strip()
+    # 精确匹配
+    if value in presets:
+        return value
+    # 去掉斜杠后半部分再匹配（如 "大堂/门厅" -> "大堂"）
+    base = value.split("/")[0].strip()
+    if base in presets:
+        return base
+    # 前缀匹配
+    for p in presets:
+        if p.startswith(value) or value.startswith(p):
+            return p
+    # 包含匹配
+    for p in presets:
+        if value in p or p in value:
+            return p
+    # 回退
+    return presets[0] if presets else value
+
 def public_provider(provider):
     key = os.getenv(provider_key_env(provider["id"]), "")
     return {
@@ -585,8 +680,9 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(ASSETS_DIR, exist_ok=True)
 os.makedirs(OUTPUT_INPUT_DIR, exist_ok=True)
 os.makedirs(OUTPUT_OUTPUT_DIR, exist_ok=True)
-os.makedirs(STATIC_DIR, exist_ok=True)
-os.makedirs(WORKFLOW_DIR, exist_ok=True)
+if not getattr(sys, 'frozen', False):
+    os.makedirs(STATIC_DIR, exist_ok=True)
+    os.makedirs(WORKFLOW_DIR, exist_ok=True)
 os.makedirs(CONVERSATION_DIR, exist_ok=True)
 os.makedirs(CANVAS_DIR, exist_ok=True)
 
@@ -723,6 +819,36 @@ class CanvasSaveRequest(BaseModel):
     logs: List[Dict[str, Any]] = []
     client_id: str = ""
     base_updated_at: int = 0
+
+# --- 资源库模型 ---
+
+class LibrarySourceCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    type: str = "local"
+    path: str = ""
+    url: str = ""
+    api_key: str = ""
+
+class LibrarySourceUpdate(BaseModel):
+    name: Optional[str] = None
+    enabled: Optional[bool] = None
+    path: Optional[str] = None
+    url: Optional[str] = None
+    api_key: Optional[str] = None
+
+class LibraryImageUpdate(BaseModel):
+    categories: Optional[List[str]] = None
+    manual_tags: Optional[List[str]] = None
+    favorited: Optional[bool] = None
+    notes: Optional[str] = None
+
+class LibraryTagRequest(BaseModel):
+    image_ids: List[str]
+    provider: str = ""
+    model: str = ""
+
+class LibraryCategoryUpdate(BaseModel):
+    custom: List[str]
 
 # --- 负载均衡 ---
 
@@ -1623,7 +1749,16 @@ async def generate_ai_image(prompt, size, quality, model, reference_images=None,
                 "official_fallback": False,
             }
             if image_refs:
-                body["image_urls"] = [reference_to_data_url(ref, max_size=1536) for ref in image_refs[:14]]
+                image_payload = []
+                for ref in image_refs[:14]:
+                    uploaded = await upload_image_for_apimart(client, provider, ref.get("url", ""))
+                    if uploaded:
+                        image_payload.append(uploaded)
+                    else:
+                        data_url = reference_to_data_url(ref, max_size=1536)
+                        if data_url:
+                            image_payload.append(data_url)
+                body["image_urls"] = image_payload
             response = await client.post(gen_url, headers=api_headers(provider=provider), json=body)
         elif is_gpt2 and not mask_refs:
             body = {"model": model, "prompt": prompt, "size": size}
@@ -3547,6 +3682,433 @@ def run_workflow(name: str, payload: WorkflowRunRequest):
         client_id=payload.client_id or str(uuid.uuid4()),
     )
     return generate(req)
+
+# ============================================================
+#  资源库 API
+# ============================================================
+
+@app.get("/api/library/sources")
+def library_list_sources():
+    sources = load_library_sources()
+    images = load_library_images()
+    count_map = {}
+    for img in images:
+        sid = img.get("source_id", "")
+        count_map[sid] = count_map.get(sid, 0) + 1
+    result = []
+    for s in sources:
+        result.append({**s, "image_count": count_map.get(s["id"], 0)})
+    return {"sources": result}
+
+@app.get("/api/library/browse")
+def library_browse(path: str = ""):
+    if not path:
+        # 返回常用根目录
+        home = os.path.expanduser("~")
+        drives = []
+        if os.name == "nt":
+            import string
+            for letter in string.ascii_uppercase:
+                dp = f"{letter}:\\"
+                if os.path.isdir(dp):
+                    drives.append({"name": dp, "path": dp})
+        return {"current": "", "parent": "", "entries": drives, "roots": drives}
+    # Windows: "D:" -> "D:\\" 保证是磁盘根目录而非当前工作目录
+    if os.name == "nt" and len(path) == 2 and path[1] == ":":
+        path = path + "\\"
+    path = os.path.abspath(path)
+    if not os.path.isdir(path):
+        raise HTTPException(status_code=400, detail="路径不存在或不是文件夹")
+    parent = os.path.dirname(path)
+    if parent == path:
+        parent = ""
+    entries = []
+    try:
+        for name in sorted(os.listdir(path)):
+            full = os.path.join(path, name)
+            if os.path.isdir(full) and not name.startswith("."):
+                entries.append({"name": name, "path": full})
+    except PermissionError:
+        pass
+    return {"current": path, "parent": parent, "entries": entries}
+
+@app.post("/api/library/sources")
+def library_create_source(req: LibrarySourceCreate):
+    sources = load_library_sources()
+    src = {
+        "id": f"src_{uuid.uuid4().hex[:10]}",
+        "name": req.name,
+        "type": req.type,
+        "path": req.path,
+        "url": req.url,
+        "api_key": req.api_key,
+        "enabled": True,
+        "created_at": now_ms(),
+        "updated_at": now_ms(),
+        "last_scan_at": None,
+    }
+    sources.append(src)
+    save_library_sources(sources)
+    if src["type"] == "local" and src["path"]:
+        os.makedirs(os.path.join(LIBRARY_DIR, src["id"], "thumbs"), exist_ok=True)
+    return {"source": src}
+
+@app.put("/api/library/sources/{source_id}")
+def library_update_source(source_id: str, req: LibrarySourceUpdate):
+    sources = load_library_sources()
+    src = next((s for s in sources if s["id"] == source_id), None)
+    if not src:
+        raise HTTPException(status_code=404, detail="来源不存在")
+    if req.name is not None:
+        src["name"] = req.name
+    if req.enabled is not None:
+        src["enabled"] = req.enabled
+    if req.path is not None:
+        src["path"] = req.path
+    if req.url is not None:
+        src["url"] = req.url
+    if req.api_key is not None:
+        src["api_key"] = req.api_key
+    src["updated_at"] = now_ms()
+    save_library_sources(sources)
+    return {"source": src}
+
+@app.delete("/api/library/sources/{source_id}")
+def library_delete_source(source_id: str):
+    sources = load_library_sources()
+    before = len(sources)
+    sources = [s for s in sources if s["id"] != source_id]
+    if len(sources) == before:
+        raise HTTPException(status_code=404, detail="来源不存在")
+    save_library_sources(sources)
+    # 同时删除该来源下所有图片记录
+    images = load_library_images()
+    images = [img for img in images if img.get("source_id") != source_id]
+    save_library_images(images)
+    return {"ok": True}
+
+@app.post("/api/library/sources/{source_id}/scan")
+def library_scan_source(source_id: str):
+    sources = load_library_sources()
+    src = next((s for s in sources if s["id"] == source_id), None)
+    if not src:
+        raise HTTPException(status_code=404, detail="来源不存在")
+    if src.get("type") != "local":
+        raise HTTPException(status_code=400, detail="暂仅支持本地文件夹扫描")
+    folder = src.get("path", "")
+    if not folder or not os.path.isdir(folder):
+        raise HTTPException(status_code=400, detail="文件夹路径不存在")
+    supported = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
+    images = load_library_images()
+    existing_paths = {img.get("local_path") for img in images if img.get("source_id") == source_id}
+    added = 0
+    thumb_dir = os.path.join(LIBRARY_DIR, source_id, "thumbs")
+    os.makedirs(thumb_dir, exist_ok=True)
+    for root, dirs, files in os.walk(folder):
+        for fname in files:
+            ext = os.path.splitext(fname)[1].lower()
+            if ext not in supported:
+                continue
+            full_path = os.path.join(root, fname)
+            if full_path in existing_paths:
+                continue
+            try:
+                with Image.open(full_path) as img:
+                    img.load()
+                    w, h = img.size
+                    thumb = img.copy()
+                    thumb.thumbnail((256, 256))
+                    if thumb.mode not in ("RGB", "RGBA"):
+                        thumb = thumb.convert("RGB")
+                    thumb_name = f"thumb_{uuid.uuid4().hex[:8]}.jpg"
+                    thumb.save(os.path.join(thumb_dir, thumb_name), "JPEG", quality=80)
+            except Exception:
+                continue
+            rel = os.path.relpath(full_path, folder).replace("\\", "/")
+            image_record = {
+                "id": f"img_{uuid.uuid4().hex[:12]}",
+                "source_id": source_id,
+                "filename": fname,
+                "local_path": full_path,
+                "url": f"/api/library/file/{source_id}/{rel}",
+                "thumb_url": f"/api/library/thumb/{source_id}/{thumb_name}",
+                "width": w,
+                "height": h,
+                "size_bytes": os.path.getsize(full_path),
+                "categories": [],
+                "tags": [],
+                "ai_tags": [],
+                "ai_tagged": False,
+                "ai_tag_model": "",
+                "manual_tags": [],
+                "favorited": False,
+                "notes": "",
+                "created_at": now_ms(),
+                "updated_at": now_ms(),
+            }
+            images.append(image_record)
+            added += 1
+    save_library_images(images)
+    # 更新来源的 last_scan_at
+    src["last_scan_at"] = now_ms()
+    save_library_sources(sources)
+    return {"added": added}
+
+@app.get("/api/library/images")
+def library_list_images(
+    source_id: str = "",
+    category: str = "",
+    tag: str = "",
+    q: str = "",
+    favorited: Optional[str] = None,
+    ai_tagged: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 50,
+):
+    images = load_library_images()
+    result = images[:]
+    if source_id:
+        result = [img for img in result if img.get("source_id") == source_id]
+    if category:
+        result = [img for img in result if category in (img.get("categories") or [])]
+    if tag:
+        result = [img for img in result if tag in (img.get("tags") or []) or tag in (img.get("ai_tags") or []) or tag in (img.get("manual_tags") or [])]
+    if q:
+        ql = q.lower()
+        def match_q(img):
+            searchable = " ".join([
+                img.get("filename", ""),
+                " ".join(img.get("categories", [])),
+                " ".join(img.get("tags", [])),
+                " ".join(img.get("ai_tags", [])),
+                " ".join(img.get("manual_tags", [])),
+                img.get("notes", ""),
+            ]).lower()
+            return ql in searchable
+        result = [img for img in result if match_q(img)]
+    if favorited == "true":
+        result = [img for img in result if img.get("favorited")]
+    if ai_tagged == "true":
+        result = [img for img in result if img.get("ai_tagged")]
+    elif ai_tagged == "false":
+        result = [img for img in result if not img.get("ai_tagged")]
+    total = len(result)
+    start = max(0, (page - 1) * page_size)
+    end = start + page_size
+    return {"images": result[start:end], "total": total, "page": page, "page_size": page_size}
+
+@app.get("/api/library/images/{image_id}")
+def library_get_image(image_id: str):
+    images = load_library_images()
+    img = next((i for i in images if i["id"] == image_id), None)
+    if not img:
+        raise HTTPException(status_code=404, detail="图片不存在")
+    return {"image": img}
+
+@app.put("/api/library/images/{image_id}")
+def library_update_image(image_id: str, req: LibraryImageUpdate):
+    images = load_library_images()
+    img = next((i for i in images if i["id"] == image_id), None)
+    if not img:
+        raise HTTPException(status_code=404, detail="图片不存在")
+    if req.categories is not None:
+        img["categories"] = req.categories
+    if req.manual_tags is not None:
+        img["manual_tags"] = req.manual_tags
+        img["tags"] = list(set((img.get("ai_tags") or []) + req.manual_tags))
+    if req.favorited is not None:
+        img["favorited"] = req.favorited
+    if req.notes is not None:
+        img["notes"] = req.notes
+    img["updated_at"] = now_ms()
+    save_library_images(images)
+    return {"image": img}
+
+@app.delete("/api/library/images/{image_id}")
+def library_delete_image(image_id: str):
+    images = load_library_images()
+    before = len(images)
+    images = [i for i in images if i["id"] != image_id]
+    if len(images) == before:
+        raise HTTPException(status_code=404, detail="图片不存在")
+    save_library_images(images)
+    return {"ok": True}
+
+@app.get("/api/library/categories")
+def library_get_categories():
+    return {"categories": load_library_categories()}
+
+@app.put("/api/library/categories")
+def library_update_categories(req: LibraryCategoryUpdate):
+    cats = load_library_categories()
+    cats["custom"] = req.custom
+    save_library_categories(cats)
+    return {"categories": cats}
+
+@app.get("/api/library/stats")
+def library_stats():
+    sources = load_library_sources()
+    images = load_library_images()
+    total = len(images)
+    tagged = sum(1 for img in images if img.get("ai_tagged"))
+    fav = sum(1 for img in images if img.get("favorited"))
+    cat_counts = {}
+    for img in images:
+        for c in (img.get("categories") or []):
+            cat_counts[c] = cat_counts.get(c, 0) + 1
+    return {
+        "total_images": total,
+        "total_sources": len(sources),
+        "tagged": tagged,
+        "untagged": total - tagged,
+        "favorited": fav,
+        "category_counts": cat_counts,
+    }
+
+@app.get("/api/library/file/{source_id}/{path:path}")
+def library_serve_file(source_id: str, path: str):
+    sources = load_library_sources()
+    src = next((s for s in sources if s["id"] == source_id), None)
+    if not src:
+        raise HTTPException(status_code=404, detail="来源不存在")
+    folder = src.get("path", "")
+    if not folder:
+        raise HTTPException(status_code=400, detail="无本地路径")
+    full = os.path.abspath(os.path.join(folder, path))
+    folder_abs = os.path.abspath(folder)
+    if os.path.commonpath([folder_abs, full]) != folder_abs:
+        raise HTTPException(status_code=403, detail="路径越界")
+    if not os.path.isfile(full):
+        raise HTTPException(status_code=404, detail="文件不存在")
+    return FileResponse(full, media_type=content_type_for_path(full))
+
+@app.get("/api/library/thumb/{source_id}/{filename}")
+def library_serve_thumb(source_id: str, filename: str):
+    thumb_dir = os.path.join(LIBRARY_DIR, source_id, "thumbs")
+    full = os.path.join(thumb_dir, filename)
+    if not os.path.isfile(full):
+        raise HTTPException(status_code=404, detail="缩略图不存在")
+    return FileResponse(full, media_type="image/jpeg")
+
+@app.post("/api/library/tag")
+async def library_ai_tag(req: LibraryTagRequest):
+    images = load_library_images()
+    id_set = set(req.image_ids)
+    targets = [img for img in images if img["id"] in id_set]
+    if not targets:
+        raise HTTPException(status_code=400, detail="未找到指定图片")
+    chat_base, chat_hdrs, resolved_model = resolve_chat_provider(req.provider, req.model, "")
+    model = req.model or resolved_model
+    # 构建标签词汇表字符串
+    vocab_lines = []
+    for group, words in PRESET_TAG_VOCAB.items():
+        vocab_lines.append(f"  {group}：{' | '.join(words)}")
+    vocab_text = "\n".join(vocab_lines)
+    prompt_text = (
+        "请分析这张建筑/设计类图片，严格按以下 JSON 格式返回。\n"
+        "【重要规则】\n"
+        "1. category、building_type、space、viewpoint、content_type 这5个字段的值只能从各自给定的选项中选择，禁止使用选项之外的任何词语。\n"
+        "2. tags 字段应优先从下方「标签词汇库」中选择，如果词汇库中没有能准确描述的词才允许自由补充。\n\n"
+        "{\n"
+        '  "category": "只能从以下选一个：住宅 | 商业 | 办公 | 文化建筑 | 酒店 | 教育 | 医疗 | 综合体 | 塔楼 | 裙房 | 展示区 | 大堂/门厅 | 样板间 | 会所 | 景观 | 广场/节点 | 水景 | 鸟瞰 | 人视 | 夜景 | 施工过程",\n'
+        '  "tags": ["标签1", "标签2", "标签3", "标签4", "标签5"],\n'
+        '  "building_type": "只能选：住宅 | 商业 | 办公 | 文化建筑 | 酒店 | 教育 | 医疗 | 综合体 | 其他",\n'
+        '  "space": "只能选：塔楼 | 裙房 | 展示区 | 大堂 | 样板间 | 会所 | 景观 | 广场 | 水景 | 其他",\n'
+        '  "viewpoint": "只能选：鸟瞰 | 人视 | 半鸟瞰 | 夜景 | 日景 | 其他",\n'
+        '  "content_type": "只能选：效果图 | 实景照片 | 施工照片 | 模型照片 | 平面图 | 剖面图 | 其他"\n'
+        "}\n\n"
+        "【标签词汇库】优先从以下词汇中选择 tags：\n"
+        f"{vocab_text}\n\n"
+        "tags 选 5-8 个，优先用词汇库中的词，不够再自由补充。只返回 JSON，不要其他文字。"
+    )
+    results = []
+    for img in targets:
+        local_path = img.get("local_path", "")
+        if not local_path or not os.path.isfile(local_path):
+            results.append({"id": img["id"], "ok": False, "error": "本地文件不存在"})
+            continue
+        try:
+            with Image.open(local_path) as pil_img:
+                pil_img.load()
+                w, h = pil_img.size
+                if max(w, h) > 1024:
+                    pil_img.thumbnail((1024, 1024), Image.LANCZOS)
+                if pil_img.mode not in ("RGB", "RGBA"):
+                    pil_img = pil_img.convert("RGB")
+                buf = BytesIO()
+                fmt = "PNG" if pil_img.mode == "RGBA" else "JPEG"
+                pil_img.save(buf, format=fmt, quality=85 if fmt == "JPEG" else None)
+                encoded = base64.b64encode(buf.getvalue()).decode("ascii")
+                mime = "image/png" if fmt == "PNG" else "image/jpeg"
+                data_url = f"data:{mime};base64,{encoded}"
+        except Exception as e:
+            results.append({"id": img["id"], "ok": False, "error": str(e)})
+            continue
+        messages = [
+            {"role": "system", "content": "你是图片分析助手。只返回 JSON。"},
+            {"role": "user", "content": [
+                {"type": "text", "text": prompt_text},
+                {"type": "image_url", "image_url": {"url": data_url}},
+            ]},
+        ]
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                resp = await client.post(
+                    f"{chat_base}/chat/completions",
+                    headers=chat_hdrs,
+                    json={"model": model, "messages": messages},
+                )
+                resp.raise_for_status()
+                raw = resp.json()
+            content = text_from_chat_response(raw).strip()
+            # 尝试匹配 JSON 对象（支持嵌套）
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                parsed = json.loads(json_match.group())
+                cat = parsed.get("category", "")
+                # 校验：主分类必须在预设列表中，否则强制匹配
+                cat = _snap_to_preset(cat, PRESET_CATEGORIES)
+                tags = parsed.get("tags", [])
+                if isinstance(tags, list):
+                    tags = [str(t).strip() for t in tags if t][:10]
+                else:
+                    tags = []
+                # 校验 tags：优先匹配预设词汇库，匹配不上的保留原值
+                all_vocab = []
+                for words in PRESET_TAG_VOCAB.values():
+                    all_vocab.extend(words)
+                validated_tags = []
+                for t in tags:
+                    snapped = _snap_to_preset(t, all_vocab)
+                    validated_tags.append(snapped)
+                tags = list(dict.fromkeys(validated_tags))  # 去重保序
+                # 校验各维度字段，只保留允许的值
+                dim_map = {
+                    "building_type": ["住宅","商业","办公","文化建筑","酒店","教育","医疗","综合体"],
+                    "space": ["塔楼","裙房","展示区","大堂","样板间","会所","景观","广场","水景"],
+                    "viewpoint": ["鸟瞰","人视","半鸟瞰","夜景","日景"],
+                    "content_type": ["效果图","实景照片","施工照片","模型照片","平面图","剖面图"],
+                }
+                dims = []
+                for key, allowed in dim_map.items():
+                    val = str(parsed.get(key, "")).strip()
+                    snapped = _snap_to_preset(val, allowed + ["其他"])
+                    if snapped and snapped != "其他":
+                        dims.append(snapped)
+                all_ai_tags = list(dict.fromkeys(dims + tags))  # 去重保序
+                img["categories"] = [cat]
+                img["ai_tags"] = all_ai_tags
+                img["tags"] = list(set(all_ai_tags + (img.get("manual_tags") or [])))
+                img["ai_tagged"] = True
+                img["ai_tag_model"] = model
+                img["updated_at"] = now_ms()
+                results.append({"id": img["id"], "ok": True, "category": cat, "tags": all_ai_tags})
+            else:
+                results.append({"id": img["id"], "ok": False, "error": "AI 返回格式异常"})
+        except Exception as e:
+            results.append({"id": img["id"], "ok": False, "error": str(e)})
+    save_library_images(images)
+    return {"results": results}
 
 if __name__ == "__main__":
     import uvicorn

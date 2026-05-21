@@ -9,6 +9,7 @@
     "image_models": [
       "Tongyi-MAI/Z-Image-Turbo",
       "Qwen/Qwen-Image-2512",
+      "Qwen/Qwen-Image-Edit-2511",
       "black-forest-labs/FLUX.2-klein-9B"
     ],
     "chat_models": [
@@ -43,11 +44,11 @@
         "note": ""
       }
     ],
-    "ms_defaults_version": 2
+    "ms_defaults_version": 3
   },
   {
-    "id": "api-5kw4jr",
-    "name": "贞贞",
+    "id": "api",
+    "name": "新 API 平台",
     "base_url": "https://ai.t8star.org",
     "protocol": "openai",
     "enabled": true,
@@ -57,6 +58,25 @@
     ],
     "chat_models": [],
     "video_models": [],
+    "ms_loras": [],
+    "ms_defaults_version": 0
+  },
+  {
+    "id": "apimart",
+    "name": "APIMart",
+    "base_url": "https://api.apimart.ai/v1",
+    "protocol": "apimart",
+    "enabled": true,
+    "primary": false,
+    "image_models": [
+      "gpt-image-2"
+    ],
+    "chat_models": [
+      "deepseek-v4-flash"
+    ],
+    "video_models": [
+      "doubao-seedance-2.0"
+    ],
     "ms_loras": [],
     "ms_defaults_version": 0
   }

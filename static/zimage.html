@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -32,7 +32,7 @@
             --accent: #000000;
         }
 
-        /* --- 极简悬浮浅灰滚动条 (无底色/左移) --- */
+        /* --- 鏋佺畝鎮诞娴呯伆婊氬姩鏉?(鏃犲簳鑹?宸︾Щ) --- */
         *::-webkit-scrollbar {
             width: 10px !important;
             height: 10px !important;
@@ -48,7 +48,7 @@
             background-color: #d8d8d8 !important;
             border: 3px solid transparent !important;
             border-right-width: 5px !important;
-            /* 增加右侧间距，使滚动条向左位移 */
+            /* 澧炲姞鍙充晶闂磋窛锛屼娇婊氬姩鏉″悜宸︿綅绉?*/
             background-clip: padding-box !important;
             border-radius: 10px !important;
         }
@@ -85,7 +85,7 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
         }
 
-        /* 复合切换组件样式 */
+        /* 澶嶅悎鍒囨崲缁勪欢鏍峰紡 */
         .mode-switcher {
             position: relative;
             background: #f1f1f1;
@@ -224,7 +224,7 @@
                             <div class="flex items-center gap-2 text-xs font-bold">
                                 <input id="width" type="number" value="1024"
                                     class="w-10 bg-transparent outline-none border-b border-transparent focus:border-black">
-                                <span class="text-gray-200">×</span>
+                                <span class="text-gray-200">脳</span>
                                 <input id="height" type="number" value="1024"
                                     class="w-10 bg-transparent outline-none border-b border-transparent focus:border-black">
                             </div>
@@ -339,7 +339,7 @@
 
         // 1. Token handled via index.html sidebar
 
-        // 2. 切换引擎逻辑
+        // 2. 鍒囨崲寮曟搸閫昏緫
         function switchEngine(mode) {
             currentEngine = mode;
             localStorage.setItem(ENGINE_MODE_KEY, mode); // Save state
@@ -368,7 +368,7 @@
             switchEngine(savedEngine);
         }
 
-        // 3. 统一渲染入口
+        // 3. 缁熶竴娓叉煋鍏ュ彛
         async function handleRender() {
             const prompt = document.getElementById('prompt').value.trim();
             if (!prompt) return alert("Please enter a prompt");
@@ -380,7 +380,7 @@
             }
         }
 
-        // 4. ModelScope 云端逻辑
+        // 4. ModelScope 浜戠閫昏緫
         async function runCloudTask(prompt) {
             let apiKey = localStorage.getItem(MS_TOKEN_KEY);
             if (!apiKey) {
@@ -423,7 +423,7 @@
             }
         }
 
-        // 5. 本地任务逻辑
+        // 5. 鏈湴浠诲姟閫昏緫
         async function runLocalTask(prompt) {
             setLoading(true);
             const placeholder = createPlaceholder("Local Rendering");
@@ -452,7 +452,7 @@
             }
         }
 
-        // 工具函数
+        // 宸ュ叿鍑芥暟
         function setLoading(isLoading) {
             const btn = document.getElementById('mainGenBtn');
             btn.disabled = isLoading;
@@ -579,7 +579,7 @@
             }, 3000);
         };
 
-        // 基础功能
+        // 鍩虹鍔熻兘
         let lightboxPreview = null;
         function ensureLightboxPreview(){
             if(!lightboxPreview && window.StudioImagePreview){

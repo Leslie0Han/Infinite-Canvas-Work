@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -20,6 +20,9 @@
                     document.documentElement.classList.add('theme-dark');
                 }
                 document.documentElement.classList.add('studio-route-booting');
+                setTimeout(function(){
+                    document.documentElement.classList.remove('studio-route-booting');
+                }, 1500);
             } catch(e) {}
         })();
     </script>
@@ -29,7 +32,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
 
-        /* 本地 Tailwind 工具类兜底：CDN 慢/未就绪时也能立刻给图标尺寸，避免首屏左侧栏空白 */
+        /* 鏈湴 Tailwind 宸ュ叿绫诲厹搴曪細CDN 鎱?鏈氨缁椂涔熻兘绔嬪埢缁欏浘鏍囧昂瀵革紝閬垮厤棣栧睆宸︿晶鏍忕┖鐧?*/
         .w-1\.5 { width: 0.375rem; }
         .h-1\.5 { height: 0.375rem; }
         .w-4 { width: 1rem; }
@@ -60,8 +63,6 @@
             --divider: rgba(0, 0, 0, 0.1);
             --scrollbar: #d8d8d8;
             --scrollbar-hover: #c0c0c0;
-            --author-name: #000;
-            --social-icon: #ccc;
         }
 
         html.theme-dark,
@@ -80,11 +81,9 @@
             --divider: rgba(255, 255, 255, 0.15);
             --scrollbar: #334155;
             --scrollbar-hover: #475569;
-            --author-name: #e5e9f0;
-            --social-icon: #64748b;
         }
 
-        /* 极简滚动条 */
+        /* 鏋佺畝婊氬姩鏉?*/
         html,
         body {
             overscroll-behavior: auto;
@@ -141,7 +140,7 @@
             transition: background 0.3s;
         }
 
-        /* 侧边栏 */
+        /* 渚ц竟鏍?*/
         .sidebar {
             width: 80px;
             min-width: 80px;
@@ -160,7 +159,7 @@
             transition-delay: 0s;
         }
 
-        /* 首次加载时与 iframe 的 0.5s 淡入同步播放，避免侧栏"焊死"在原地造成视觉断层 */
+        /* 棣栨鍔犺浇鏃朵笌 iframe 鐨?0.5s 娣″叆鍚屾鎾斁锛岄伩鍏嶄晶鏍?鐒婃"鍦ㄥ師鍦伴€犳垚瑙嗚鏂眰 */
         @keyframes sidebar-enter {
             from { opacity: 0; transform: translateX(-6px); }
             to { opacity: 1; transform: translateX(0); }
@@ -177,7 +176,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            /* 仅保留 hover 真正会用到的属性过渡，避免 transition: all 因首屏属性补齐被意外触发 */
+            /* 浠呬繚鐣?hover 鐪熸浼氱敤鍒扮殑灞炴€ц繃娓★紝閬垮厤 transition: all 鍥犻灞忓睘鎬цˉ榻愯鎰忓瑙﹀彂 */
             transition: transform 0.6s var(--fluid-ease) 0.5s, border-radius 0.6s var(--fluid-ease) 0.5s, border-color 0.3s;
         }
 
@@ -187,7 +186,7 @@
             transition-delay: 0s;
         }
 
-        /* 导航项 */
+        /* 瀵艰埅椤?*/
         .nav-item {
             position: relative;
             width: 48px;
@@ -198,7 +197,7 @@
             justify-content: flex-start;
             border-radius: 18px;
             cursor: pointer;
-            /* 只对 width 做带延迟的过渡（侧栏悬停展开效果）；background/color 不参与过渡，避免 active 切换时底色"流动" */
+            /* 鍙 width 鍋氬甫寤惰繜鐨勮繃娓★紙渚ф爮鎮仠灞曞紑鏁堟灉锛夛紱background/color 涓嶅弬涓庤繃娓★紝閬垮厤 active 鍒囨崲鏃跺簳鑹?娴佸姩" */
             transition: width 0.3s var(--fluid-ease) 0.5s;
             color: var(--muted);
             overflow: hidden;
@@ -240,7 +239,7 @@
             transition-delay: 0.1s;
         }
 
-        /* 主舞台区 */
+        /* 涓昏垶鍙板尯 */
         .stage {
             flex: 1;
             background: var(--stage-bg);
@@ -272,7 +271,7 @@
             pointer-events: auto;
         }
 
-        /* 左下角监视器 */
+        /* 宸︿笅瑙掔洃瑙嗗櫒 */
         .nano-monitor {
             position: absolute;
             bottom: 24px;
@@ -352,78 +351,6 @@
             font-size: 9px;
         }
 
-        /* 作者组件 */
-        .author-box {
-            width: 100%;
-            height: 60px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        .dx-letter {
-            position: absolute;
-            font-size: 14px;
-            font-weight: 800;
-            color: var(--text);
-            /* 只过渡 hover 时真正改的 transform/opacity，避免 all 触发延迟 */
-            transition: transform 0.5s var(--fluid-ease) 0.4s, opacity 0.5s var(--fluid-ease) 0.4s;
-            z-index: 10;
-        }
-
-        .letter-d { transform: translateX(-8px); }
-        .letter-x { transform: translateX(8px); }
-
-        .sidebar:hover .letter-d {
-            transform: translateX(-120px);
-            opacity: 0;
-            transition-delay: 0s;
-        }
-
-        .sidebar:hover .letter-x {
-            transform: translateX(120px);
-            opacity: 0;
-            transition-delay: 0s;
-        }
-
-        .author-content-wrap {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            opacity: 0;
-            transform: scale(0.9);
-            transition: all 0.4s var(--fluid-ease) 0s;
-            pointer-events: none;
-        }
-
-        .sidebar:hover .author-content-wrap {
-            opacity: 1;
-            transform: scale(1);
-            transition-delay: 0.2s;
-            pointer-events: auto;
-        }
-
-        .author-name-lite {
-            font-size: 12px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: var(--author-name);
-        }
-
-        .social-row-lite { display: flex; gap: 12px; }
-
-        .social-icon-lite {
-            color: var(--social-icon);
-            transition: color 0.2s, transform 0.2s;
-        }
-
-        .social-icon-lite:hover {
-            color: var(--text);
-            transform: translateY(-1px);
-        }
-
         .side-actions {
             margin-top:auto;
             margin-bottom:12px;
@@ -445,7 +372,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            /* 只过渡 hover/激活会改的属性，避免 all 触发延迟 */
+            /* 鍙繃娓?hover/婵€娲讳細鏀圭殑灞炴€э紝閬垮厤 all 瑙﹀彂寤惰繜 */
             transition: width 0.3s var(--fluid-ease) 0.5s, gap 0.3s var(--fluid-ease) 0.5s, background-color 0.2s, color 0.2s, border-color 0.2s;
             flex-shrink: 0;
             overflow:hidden;
@@ -486,7 +413,7 @@
             max-width:120px;
             transition-delay:.15s;
         }
-        /* 折叠态去除 gap，避免图标被推偏 */
+        /* 鎶樺彔鎬佸幓闄?gap锛岄伩鍏嶅浘鏍囪鎺ㄥ亸 */
         .side-pill { gap:0; }
         .sidebar:hover .side-pill { gap:8px; }
     </style>
@@ -505,19 +432,19 @@
                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.587-1.587a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                     </svg>
-                    <span class="nav-text" data-i18n="nav.textToImage">文生图</span>
+                    <span class="nav-text" data-i18n="nav.textToImage">鏂囩敓鍥?/span>
                 </div>
                 <div class="nav-item" onclick="switchUI(this, 'enhance')">
                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                     </svg>
-                    <span class="nav-text" data-i18n="nav.enhance">细节增强</span>
+                    <span class="nav-text" data-i18n="nav.enhance">缁嗚妭澧炲己</span>
                 </div>
                 <div class="nav-item" onclick="switchUI(this, 'klein')">
                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                     </svg>
-                    <span class="nav-text" data-i18n="nav.imageEdit">图片编辑</span>
+                    <span class="nav-text" data-i18n="nav.imageEdit">鍥剧墖缂栬緫</span>
                 </div>
                 <div class="nav-item" onclick="switchUI(this, 'angle')">
                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -525,10 +452,10 @@
                         <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
                         <line x1="12" y1="22.08" x2="12" y2="12"></line>
                     </svg>
-                    <span class="nav-text" data-i18n="nav.angle">角度控制</span>
+                    <span class="nav-text" data-i18n="nav.angle">瑙掑害鎺у埗</span>
                 </div>
 
-                <!-- 分隔线 -->
+                <!-- 鍒嗛殧绾?-->
                 <div style="width:32px;height:1px;background:var(--border);margin:8px auto;transition:background 0.3s;"></div>
 
                 <div class="nav-item" onclick="switchUI(this, 'online')">
@@ -536,13 +463,13 @@
                         <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"></path>
                         <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                     </svg>
-                    <span class="nav-text" data-i18n="nav.online">在线生图</span>
+                    <span class="nav-text" data-i18n="nav.online">鍦ㄧ嚎鐢熷浘</span>
                 </div>
                 <div class="nav-item" onclick="switchUI(this, 'gpt-chat')">
                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                     </svg>
-                    <span class="nav-text" data-i18n="nav.gpt">GPT 对话</span>
+                    <span class="nav-text" data-i18n="nav.gpt">GPT 瀵硅瘽</span>
                 </div>
                 <div class="nav-item" onclick="switchUI(this, 'canvas')">
                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -551,12 +478,19 @@
                         <rect x="14" y="14" width="7" height="7"></rect>
                         <rect x="3" y="14" width="7" height="7"></rect>
                     </svg>
-                    <span class="nav-text" data-i18n="nav.canvas">无限画布</span>
+                    <span class="nav-text" data-i18n="nav.canvas">鏃犻檺鐢诲竷</span>
+                </div>
+                <div class="nav-item" onclick="switchUI(this, 'library')">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    <span class="nav-text" data-i18n="nav.library">资源库</span>
                 </div>
             </nav>
 
             <div class="side-actions">
-                <button class="side-pill" onclick="toggleTheme()" id="theme-toggle-btn" type="button" title="切换夜间模式">
+                <button class="side-pill" onclick="toggleTheme()" id="theme-toggle-btn" type="button" title="鍒囨崲澶滈棿妯″紡">
                     <svg id="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
@@ -571,7 +505,7 @@
                         <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                         <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                     </svg>
-                    <span class="side-pill-text" data-i18n="common.darkMode">黑夜模式</span>
+                    <span class="side-pill-text" data-i18n="common.darkMode">榛戝妯″紡</span>
                 </button>
                 <button class="side-pill" onclick="toggleLanguage()" id="lang-toggle-btn" type="button" title="Language">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -579,17 +513,17 @@
                         <path d="M2 12h20"></path>
                         <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                     </svg>
-                    <span class="side-pill-text" data-i18n="common.language">中文</span>
+                    <span class="side-pill-text" data-i18n="common.language">涓枃</span>
                 </button>
-                <button class="side-pill" onclick="switchUI(this, 'api-settings')" type="button" title="API 设置">
+                <button class="side-pill" onclick="switchUI(this, 'api-settings')" type="button" title="API 璁剧疆">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M15 7h3a5 5 0 0 1 0 10h-3"></path>
                         <path d="M9 17H6A5 5 0 0 1 6 7h3"></path>
                         <line x1="8" y1="12" x2="16" y2="12"></line>
                     </svg>
-                    <span class="side-pill-text" data-i18n="common.apiSettings">API 设置</span>
+                    <span class="side-pill-text" data-i18n="common.apiSettings">API 璁剧疆</span>
                 </button>
-                <button class="side-pill" onclick="switchUI(this, 'comfyui-settings')" type="button" title="ComfyUI 设置">
+                <button class="side-pill" onclick="switchUI(this, 'comfyui-settings')" type="button" title="ComfyUI 璁剧疆">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="3" width="7" height="7" rx="1"></rect>
                         <rect x="14" y="3" width="7" height="7" rx="1"></rect>
@@ -598,43 +532,13 @@
                         <line x1="10" y1="6.5" x2="14" y2="6.5"></line>
                         <line x1="6.5" y1="10" x2="6.5" y2="14"></line>
                     </svg>
-                    <span class="side-pill-text" data-i18n="common.comfyuiSettings">ComfyUI 设置</span>
+                    <span class="side-pill-text" data-i18n="common.comfyuiSettings">ComfyUI 璁剧疆</span>
                 </button>
             </div>
 
-            <div class="author-box">
-                <span class="dx-letter letter-d">H</span>
-                <span class="dx-letter letter-x">X</span>
-
-                <div class="author-content-wrap">
-                    <div class="author-name-lite">Leslie</div>
-                    <div class="social-row-lite">
-                        <a href="https://space.bilibili.com/111093829" target="_blank" class="social-icon-lite">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M17.813 4.653h-.854L15.66 3.053a1.147 1.147 0 00-1.63 0l-1.3 1.6h-1.46L9.97 3.053a1.147 1.147 0 00-1.63 0L7.043 4.653h-.854a3.946 3.946 0 00-3.93 3.934v8.117a3.946 3.946 0 003.93 3.934h11.624a3.946 3.946 0 003.93-3.934V8.587a3.946 3.946 0 00-3.93-3.934zM7.152 13.9a1.465 1.465 0 111.47-1.462 1.465 1.465 0 01-1.47 1.462zm7.696 0a1.465 1.465 0 111.47-1.462 1.465 1.465 0 01-1.47 1.462z" />
-                            </svg>
-                        </a>
-                        <a href="https://www.xiaohongshu.com/user/profile/5e05376d000000000100a2b7?tab=note&subTab=note" target="_blank" class="social-icon-lite">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z" />
-                            </svg>
-                        </a>
-                        <a href="https://www.youtube.com/@xuanhan8321" target="_blank" class="social-icon-lite">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                            </svg>
-                        </a>
-                        <a href="https://x.com/FC_Leslie_Barca" target="_blank" class="social-icon-lite">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-            </div>
         </aside>
         <script>
-            /* 在侧栏 DOM 解析完后立即把 active 类移到当前页对应的入口，避免首屏先在文生图上闪一下 */
+            /* 鍦ㄤ晶鏍?DOM 瑙ｆ瀽瀹屽悗绔嬪嵆鎶?active 绫荤Щ鍒板綋鍓嶉〉瀵瑰簲鐨勫叆鍙ｏ紝閬垮厤棣栧睆鍏堝湪鏂囩敓鍥句笂闂竴涓?*/
             (function(){
                 try {
                     var pageId = localStorage.getItem('studio_active_page');
@@ -656,7 +560,8 @@
             <iframe id="frame-angle" data-src="/static/angle.html?v=20260512-i18n2" scrolling="yes"></iframe>
             <iframe id="frame-online" data-src="/static/online.html?v=20260512-i18n2" scrolling="yes"></iframe>
             <iframe id="frame-gpt-chat" data-src="/static/gpt-chat.html?v=20260514-provider-chat-models" scrolling="yes"></iframe>
-            <iframe id="frame-canvas" data-src="/static/canvas.html?v=20260515-editor-zoom-undo" scrolling="yes"></iframe>
+            <iframe id="frame-canvas" data-src="/static/canvas.html?v=20260518-canvas-fixes" scrolling="yes"></iframe>
+            <iframe id="frame-library" data-src="/static/library.html?v=20260518-resource-library" scrolling="yes"></iframe>
             <iframe id="frame-api-settings" data-src="/static/api-settings.html?v=20260517-provider-fetch-form2" scrolling="yes"></iframe>
             <iframe id="frame-comfyui-settings" data-src="/static/comfyui-settings.html?v=20260515-workflow-refresh" scrolling="yes"></iframe>
 
@@ -690,7 +595,7 @@
         localStorage.setItem("client_id", CID);
         const ACTIVE_PAGE_KEY = 'studio_active_page';
         const DEFAULT_PAGE_ID = 'zimage';
-        const PAGE_IDS = ['zimage','enhance','klein','angle','online','gpt-chat','canvas','api-settings','comfyui-settings'];
+        const PAGE_IDS = ['zimage','enhance','klein','angle','online','gpt-chat','canvas','library','api-settings','comfyui-settings'];
 
         function switchUI(el, id, options = {}) {
             if(!PAGE_IDS.includes(id)) id = DEFAULT_PAGE_ID;
@@ -704,7 +609,6 @@
             // sync theme to newly activated iframe
             syncThemeToFrame(target);
             syncLanguageToFrame(target);
-            // 切换到画布时通知刷新工作流列表（防止在 comfyui-settings 修改后画布未及时更新）
             if (id === 'canvas' && target.src) {
                 try { target.contentWindow?.postMessage({ type: 'canvas-focus' }, '*'); } catch(e) {}
             }
@@ -762,7 +666,7 @@
             setInterval(syncStatus, 2000);
         }
 
-        // --- 夜间模式 ---
+        // --- 澶滈棿妯″紡 ---
 
         function syncThemeToFrame(iframe) {
             const theme = (window.StudioTheme || {get: () => 'light'}).get();
