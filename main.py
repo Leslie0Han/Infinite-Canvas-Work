@@ -12,6 +12,7 @@ import time
 import shutil
 import asyncio
 import logging
+import zipfile
 import requests
 from typing import List, Dict, Any, Optional
 from threading import Lock
@@ -575,6 +576,45 @@ def load_library_categories():
 def save_library_categories(cats):
     _library_write_json(LIBRARY_CATEGORIES_FILE, cats)
 
+def extract_library_canvas_refs(notes: str = "", image: Optional[Dict[str, Any]] = None):
+    record = image or {}
+    canvas_id = str(record.get("source_canvas_id") or "").strip()
+    canvas_title = str(record.get("source_canvas_title") or "").strip()
+    node_id = str(record.get("source_node_id") or "").strip()
+    text = str(notes or record.get("notes") or "")
+    if text:
+        if not canvas_title:
+            match = re.search(r"^来自智能画布：(.+)$", text, re.MULTILINE)
+            if match:
+                canvas_title = match.group(1).strip()
+        if not canvas_id:
+            match = re.search(r"^画布ID：([A-Za-z0-9_-]+)$", text, re.MULTILINE)
+            if match:
+                canvas_id = match.group(1).strip()
+        if not node_id:
+            match = re.search(r"^节点ID：([A-Za-z0-9_-]+)$", text, re.MULTILINE)
+            if match:
+                node_id = match.group(1).strip()
+    return {
+        "source_canvas_id": canvas_id,
+        "source_canvas_title": canvas_title,
+        "source_node_id": node_id,
+    }
+
+def enrich_library_image_record(image, source_map=None):
+    if not isinstance(image, dict):
+        return image
+    if source_map is None:
+        source_map = {str(s.get("id") or ""): s for s in load_library_sources()}
+    record = dict(image)
+    source_id = str(record.get("source_id") or "")
+    src = source_map.get(source_id) or {}
+    if source_id:
+        record["source_name"] = src.get("name") or record.get("source_name") or source_id
+    refs = extract_library_canvas_refs(record.get("notes"), record)
+    record.update(refs)
+    return record
+
 def _snap_to_preset(value, presets):
     """将 AI 返回的分类值校验到允许的预设列表中。精确匹配优先，否则前缀/包含匹配，最后回退到第一个。"""
     if not value:
@@ -809,6 +849,7 @@ class ConversationCreateRequest(BaseModel):
 class CanvasCreateRequest(BaseModel):
     title: str = "未命名画布"
     icon: str = "🧩"
+    kind: str = "classic"
 
 class CanvasSaveRequest(BaseModel):
     title: str = "未命名画布"
@@ -817,8 +858,16 @@ class CanvasSaveRequest(BaseModel):
     connections: List[Dict[str, Any]] = []
     viewport: Dict[str, Any] = {}
     logs: List[Dict[str, Any]] = []
+    settings: Dict[str, Any] = {}
     client_id: str = ""
     base_updated_at: int = 0
+
+class CanvasAssetCheckRequest(BaseModel):
+    urls: List[str] = []
+
+class CanvasAssetDownloadRequest(BaseModel):
+    urls: List[str] = []
+    filename: str = "canvas-output-assets.zip"
 
 # --- 资源库模型 ---
 
@@ -849,6 +898,15 @@ class LibraryTagRequest(BaseModel):
 
 class LibraryCategoryUpdate(BaseModel):
     custom: List[str]
+
+class LibraryImportRequest(BaseModel):
+    urls: List[str]
+    source_name: str = "智能画布"
+    canvas_id: str = ""
+    canvas_title: str = ""
+    node_id: str = ""
+    categories: List[str] = []
+    manual_tags: List[str] = []
 
 # --- 负载均衡 ---
 
@@ -1059,17 +1117,23 @@ def save_canvas(canvas):
         with open(canvas_path(canvas["id"]), 'w', encoding='utf-8') as f:
             json.dump(canvas, f, ensure_ascii=False, indent=2)
 
-def new_canvas(title="未命名画布", icon="layers"):
+def normalize_canvas_kind(kind="classic"):
+    return "smart" if str(kind or "").strip().lower() == "smart" else "classic"
+
+def new_canvas(title="未命名画布", icon="layers", kind="classic"):
     timestamp = now_ms()
+    canvas_kind = normalize_canvas_kind(kind)
     canvas = {
         "id": uuid.uuid4().hex,
-        "title": (title or "未命名画布")[:80],
-        "icon": (icon or "🧩")[:4],
+        "title": (title or ("智能画布" if canvas_kind == "smart" else "未命名画布"))[:80],
+        "icon": (icon or ("sparkles" if canvas_kind == "smart" else "🧩"))[:32],
+        "kind": canvas_kind,
         "created_at": timestamp,
         "updated_at": timestamp,
         "nodes": [],
         "connections": [],
         "viewport": {"x": 0, "y": 0, "scale": 1},
+        "settings": {},
     }
     save_canvas(canvas)
     return canvas
@@ -1080,6 +1144,8 @@ def load_canvas(canvas_id):
         raise HTTPException(status_code=404, detail="画布不存在")
     with open(path, 'r', encoding='utf-8') as f:
         canvas = json.load(f)
+    canvas["kind"] = normalize_canvas_kind(canvas.get("kind"))
+    canvas["settings"] = canvas.get("settings") or {}
     if canvas.get("deleted_at"):
         raise HTTPException(status_code=404, detail="画布已在回收站")
     return canvas
@@ -1089,13 +1155,17 @@ def load_canvas_any(canvas_id):
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="画布不存在")
     with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        canvas = json.load(f)
+    canvas["kind"] = normalize_canvas_kind(canvas.get("kind"))
+    canvas["settings"] = canvas.get("settings") or {}
+    return canvas
 
 def canvas_record(data):
     return {
         "id": data.get("id"),
         "title": data.get("title", "未命名画布"),
         "icon": data.get("icon", "🧩"),
+        "kind": normalize_canvas_kind(data.get("kind")),
         "created_at": data.get("created_at", 0),
         "updated_at": data.get("updated_at", 0),
         "deleted_at": data.get("deleted_at", 0),
@@ -1345,6 +1415,53 @@ def output_file_from_url(url):
     if os.path.commonpath([output_root, path]) != output_root or not os.path.exists(path):
         return None
     return path
+
+def library_file_from_url(url):
+    if isinstance(url, dict):
+        url = url.get("url", "")
+    text = str(url or "").strip()
+    if not text.startswith("/api/library/file/"):
+        return None
+    clean = urllib.parse.unquote(text.split("?", 1)[0]).replace("\\", "/")
+    prefix = "/api/library/file/"
+    rest = clean[len(prefix):]
+    if not rest or "/" not in rest:
+        return None
+    source_id, rel_path = rest.split("/", 1)
+    if not source_id or not rel_path:
+        return None
+    sources = load_library_sources()
+    src = next((s for s in sources if s.get("id") == source_id), None)
+    folder = str((src or {}).get("path") or "").strip()
+    if not src or not folder:
+        return None
+    folder_abs = os.path.abspath(folder)
+    full = os.path.abspath(os.path.join(folder_abs, rel_path))
+    try:
+        if os.path.commonpath([folder_abs, full]) != folder_abs:
+            return None
+    except ValueError:
+        return None
+    if not os.path.isfile(full):
+        return None
+    return full
+
+def local_asset_path_from_url(url):
+    return output_file_from_url(url) or library_file_from_url(url)
+
+def create_library_thumb_from_path(local_path, source_id):
+    thumb_dir = os.path.join(LIBRARY_DIR, source_id, "thumbs")
+    os.makedirs(thumb_dir, exist_ok=True)
+    with Image.open(local_path) as img:
+        img.load()
+        w, h = img.size
+        thumb = img.copy()
+        thumb.thumbnail((256, 256))
+        if thumb.mode not in ("RGB", "RGBA"):
+            thumb = thumb.convert("RGB")
+        thumb_name = f"thumb_{uuid.uuid4().hex[:8]}.jpg"
+        thumb.save(os.path.join(thumb_dir, thumb_name), "JPEG", quality=80)
+    return thumb_name, w, h
 
 def content_type_for_path(path):
     ext = os.path.splitext(path)[1].lower()
@@ -2601,7 +2718,7 @@ async def trashed_canvases():
 
 @app.post("/api/canvases")
 async def create_canvas(payload: CanvasCreateRequest):
-    return {"canvas": new_canvas(payload.title, payload.icon)}
+    return {"canvas": new_canvas(payload.title, payload.icon, payload.kind)}
 
 @app.get("/api/canvases/{canvas_id}/meta")
 async def get_canvas_meta(canvas_id: str):
@@ -2611,11 +2728,58 @@ async def get_canvas_meta(canvas_id: str):
         "updated_at": canvas.get("updated_at", 0),
         "title": canvas.get("title", "未命名画布"),
         "icon": canvas.get("icon", "layers"),
+        "kind": normalize_canvas_kind(canvas.get("kind")),
     }
 
 @app.get("/api/canvases/{canvas_id}")
 async def get_canvas(canvas_id: str):
     return {"canvas": load_canvas(canvas_id)}
+
+@app.post("/api/canvas-assets/check")
+async def check_canvas_assets(payload: CanvasAssetCheckRequest):
+    result = {}
+    for url in payload.urls[:3000]:
+        text = str(url or "").strip()
+        if not text:
+            continue
+        if text.startswith("/output/") or text.startswith("/assets/") or text.startswith("/api/library/file/"):
+            result[text] = bool(local_asset_path_from_url(text))
+        else:
+            result[text] = True
+    return {"exists": result}
+
+@app.post("/api/canvas-assets/download")
+async def download_canvas_assets(payload: CanvasAssetDownloadRequest):
+    buffer = BytesIO()
+    used_names = set()
+    count = 0
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for url in payload.urls[:1000]:
+            text = str(url or "").strip()
+            if not text:
+                continue
+            path = local_asset_path_from_url(text)
+            if not path or not os.path.isfile(path):
+                continue
+            base = os.path.basename(path) or f"asset-{count + 1}.bin"
+            name, ext = os.path.splitext(base)
+            archive_name = base
+            suffix = 2
+            while archive_name in used_names:
+                archive_name = f"{name}-{suffix}{ext}"
+                suffix += 1
+            used_names.add(archive_name)
+            zf.write(path, archive_name)
+            count += 1
+    if count <= 0:
+        raise HTTPException(status_code=404, detail="没有可下载的本地素材")
+    buffer.seek(0)
+    filename = re.sub(r'[\\/:*?"<>|]+', "_", payload.filename or "canvas-output-assets.zip")
+    if not filename.lower().endswith(".zip"):
+        filename += ".zip"
+    encoded = urllib.parse.quote(filename)
+    headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{encoded}"}
+    return Response(buffer.getvalue(), media_type="application/zip", headers=headers)
 
 @app.put("/api/canvases/{canvas_id}")
 async def update_canvas(canvas_id: str, payload: CanvasSaveRequest):
@@ -2629,10 +2793,12 @@ async def update_canvas(canvas_id: str, payload: CanvasSaveRequest):
         })
     canvas["title"] = (payload.title or canvas.get("title") or "未命名画布")[:80]
     canvas["icon"] = (payload.icon or canvas.get("icon") or "layers")[:32]
+    canvas["kind"] = normalize_canvas_kind(canvas.get("kind"))
     canvas["nodes"] = payload.nodes
     canvas["connections"] = payload.connections
     canvas["viewport"] = payload.viewport
     canvas["logs"] = payload.logs[-500:]
+    canvas["settings"] = payload.settings or {}
     save_canvas(canvas)
     await manager.broadcast_canvas_updated(canvas_id, int(canvas.get("updated_at") or now_ms()), payload.client_id)
     return {"canvas": canvas}
@@ -3854,6 +4020,106 @@ def library_scan_source(source_id: str):
     save_library_sources(sources)
     return {"added": added}
 
+@app.post("/api/library/import")
+def library_import_images(req: LibraryImportRequest):
+    urls = [str(url or "").strip() for url in req.urls[:200] if str(url or "").strip()]
+    if not urls:
+        raise HTTPException(status_code=400, detail="没有可导入的素材")
+
+    source_slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", (req.source_name or "smart-canvas").strip().lower()).strip("-") or "smart-canvas"
+    source_id = f"smart-{source_slug}"[:48]
+    source_name = (req.source_name or "智能画布").strip()[:80] or "智能画布"
+    source_folder = os.path.join(LIBRARY_DIR, source_id, "files")
+    os.makedirs(source_folder, exist_ok=True)
+    os.makedirs(os.path.join(LIBRARY_DIR, source_id, "thumbs"), exist_ok=True)
+
+    sources = load_library_sources()
+    src = next((s for s in sources if s.get("id") == source_id), None)
+    if not src:
+        src = {
+            "id": source_id,
+            "name": source_name,
+            "type": "local",
+            "path": source_folder,
+            "enabled": True,
+            "created_at": now_ms(),
+            "last_scan_at": 0,
+            "managed_by": "smart-canvas",
+        }
+        sources.insert(0, src)
+    else:
+        src["name"] = source_name
+        src["type"] = "local"
+        src["path"] = source_folder
+        src["enabled"] = True
+
+    images = load_library_images()
+    categories = [str(x).strip() for x in (req.categories or []) if str(x).strip()][:8]
+    manual_tags = [str(x).strip() for x in (req.manual_tags or []) if str(x).strip()][:24]
+    imported = []
+    skipped = []
+
+    for index, url in enumerate(urls, start=1):
+        path = local_asset_path_from_url(url)
+        if not path or not os.path.isfile(path):
+            skipped.append({"url": url, "reason": "missing"})
+            continue
+        mime = content_type_for_path(path)
+        if not mime.startswith("image/"):
+            skipped.append({"url": url, "reason": "not_image"})
+            continue
+        base = os.path.basename(path) or f"image-{index}.png"
+        stem, ext = os.path.splitext(base)
+        ext = ext or ".png"
+        archive_name = f"{re.sub(r'[^a-zA-Z0-9._-]+', '_', stem)[:80]}{ext.lower()}"
+        target_path = os.path.join(source_folder, archive_name)
+        suffix = 2
+        while os.path.exists(target_path):
+            target_path = os.path.join(source_folder, f"{re.sub(r'[^a-zA-Z0-9._-]+', '_', stem)[:72]}-{suffix}{ext.lower()}")
+            suffix += 1
+        shutil.copy2(path, target_path)
+        thumb_name, w, h = create_library_thumb_from_path(target_path, source_id)
+        filename = os.path.basename(target_path)
+        record = {
+            "id": f"img_{uuid.uuid4().hex[:12]}",
+            "source_id": source_id,
+            "source_name": source_name,
+            "source_canvas_id": req.canvas_id,
+            "source_canvas_title": req.canvas_title,
+            "source_node_id": req.node_id,
+            "filename": filename,
+            "local_path": target_path,
+            "url": f"/api/library/file/{source_id}/{urllib.parse.quote(filename)}",
+            "thumb_url": f"/api/library/thumb/{source_id}/{thumb_name}",
+            "width": w,
+            "height": h,
+            "size_bytes": os.path.getsize(target_path),
+            "categories": categories[:],
+            "tags": list(dict.fromkeys(manual_tags)),
+            "ai_tags": [],
+            "ai_tagged": False,
+            "ai_tag_model": "",
+            "manual_tags": manual_tags[:],
+            "favorited": False,
+            "notes": "\n".join([
+                line for line in [
+                    f"来自智能画布：{req.canvas_title}" if req.canvas_title else "",
+                    f"画布ID：{req.canvas_id}" if req.canvas_id else "",
+                    f"节点ID：{req.node_id}" if req.node_id else "",
+                    f"原始路径：{url}",
+                ] if line
+            ]),
+            "created_at": now_ms(),
+            "updated_at": now_ms(),
+        }
+        images.append(record)
+        imported.append(record)
+
+    src["last_scan_at"] = now_ms()
+    save_library_sources(sources)
+    save_library_images(images)
+    return {"imported": imported, "count": len(imported), "skipped": skipped, "source_id": source_id}
+
 @app.get("/api/library/images")
 def library_list_images(
     source_id: str = "",
@@ -3866,6 +4132,7 @@ def library_list_images(
     page_size: int = 50,
 ):
     images = load_library_images()
+    source_map = {str(s.get("id") or ""): s for s in load_library_sources()}
     result = images[:]
     if source_id:
         result = [img for img in result if img.get("source_id") == source_id]
@@ -3895,7 +4162,7 @@ def library_list_images(
     total = len(result)
     start = max(0, (page - 1) * page_size)
     end = start + page_size
-    return {"images": result[start:end], "total": total, "page": page, "page_size": page_size}
+    return {"images": [enrich_library_image_record(img, source_map) for img in result[start:end]], "total": total, "page": page, "page_size": page_size}
 
 @app.get("/api/library/images/{image_id}")
 def library_get_image(image_id: str):
@@ -3903,7 +4170,7 @@ def library_get_image(image_id: str):
     img = next((i for i in images if i["id"] == image_id), None)
     if not img:
         raise HTTPException(status_code=404, detail="图片不存在")
-    return {"image": img}
+    return {"image": enrich_library_image_record(img)}
 
 @app.put("/api/library/images/{image_id}")
 def library_update_image(image_id: str, req: LibraryImageUpdate):
@@ -3922,7 +4189,7 @@ def library_update_image(image_id: str, req: LibraryImageUpdate):
         img["notes"] = req.notes
     img["updated_at"] = now_ms()
     save_library_images(images)
-    return {"image": img}
+    return {"image": enrich_library_image_record(img)}
 
 @app.delete("/api/library/images/{image_id}")
 def library_delete_image(image_id: str):

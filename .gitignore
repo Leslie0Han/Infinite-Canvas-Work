@@ -6,3 +6,12 @@ python/
 get-pip.py
 dist/
 build/
+.venv/
+.DS_Store
+*.exe
+packages/
+assets/
+data/canvases/
+data/library/
+data/library.json
+*.spec
