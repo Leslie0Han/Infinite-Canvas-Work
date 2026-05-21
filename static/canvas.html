@@ -184,6 +184,11 @@
         .blank-image { height:190px; border:1px dashed #cbd5e1; border-radius:16px; background:#f8fafc; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:#94a3b8; cursor:pointer; transition:all .2s var(--ease); }
         .node.sized .blank-image { height:100%; min-height:72px; }
         .blank-image:hover,.blank-image.drag-over { border-color:#111827; color:#111827; background:#fff; }
+        .image-source-actions { display:flex; gap:8px; margin-top:4px; flex-wrap:wrap; justify-content:center; }
+        .image-source-btn { height:30px; padding:0 12px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; gap:6px; background:rgba(255,255,255,.94); color:#475569; border:1px solid #dbe3ee; font-size:11px; font-weight:800; box-shadow:0 8px 18px rgba(15,23,42,.06); }
+        .image-source-btn.primary { background:#111827; color:#fff; border-color:#111827; }
+        .image-source-btn:hover { border-color:#94a3b8; color:#111827; }
+        .image-source-btn.primary:hover { color:#fff; background:#0f172a; }
         .prompt-node { width:310px; }
         .prompt-node .node-body { overflow:hidden !important; }
         .prompt-node textarea { width:100%; height:140px; min-height:72px; resize:none; overflow-y:auto; scrollbar-width:thin; border:1px solid #edf2f7; border-radius:16px; outline:none; padding:12px; background:#fbfdff; font-size:13px; line-height:1.6; }
@@ -505,6 +510,23 @@
         .image-edit-modal { position:absolute; inset:0; z-index:80; display:none; align-items:center; justify-content:center; padding:18px; background:rgba(248,250,252,.42); backdrop-filter:blur(18px); }
         .image-edit-modal.open { display:flex; }
         .image-edit-panel { width:min(1480px, calc(100vw - 36px)); height:min(980px, calc(100vh - 36px)); border-radius:22px; background:#fff; border:1px solid #e8edf3; box-shadow:0 30px 90px rgba(15,23,42,.22); padding:14px; display:flex; flex-direction:column; gap:10px; }
+        .library-picker-modal { position:absolute; inset:0; z-index:82; display:none; align-items:center; justify-content:center; padding:18px; background:rgba(248,250,252,.42); backdrop-filter:blur(18px); }
+        .library-picker-modal.open { display:flex; }
+        .library-picker-panel { width:min(1120px, calc(100vw - 36px)); height:min(820px, calc(100vh - 36px)); border-radius:22px; background:#fff; border:1px solid #e8edf3; box-shadow:0 30px 90px rgba(15,23,42,.22); padding:14px; display:flex; flex-direction:column; gap:12px; }
+        .library-picker-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+        .library-picker-title { font-size:13px; font-weight:900; color:#111827; }
+        .library-picker-sub { margin-top:3px; color:#94a3b8; font-size:11px; font-weight:600; }
+        .library-picker-toolbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+        .library-picker-search { min-width:240px; flex:1; height:36px; border:1px solid #e8edf3; border-radius:999px; background:#fbfdff; color:#111827; padding:0 14px; font-size:12px; font-weight:700; outline:none; }
+        .library-picker-meta { color:#94a3b8; font-size:11px; font-weight:700; }
+        .library-picker-grid { flex:1; min-height:0; overflow:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(156px, 1fr)); gap:12px; padding-right:2px; }
+        .library-picker-card { display:flex; flex-direction:column; gap:8px; min-width:0; border:1px solid #e8edf3; border-radius:18px; background:#fff; padding:8px; text-align:left; box-shadow:0 8px 20px rgba(15,23,42,.05); transition:border-color .15s var(--ease), transform .15s var(--ease), box-shadow .15s var(--ease); }
+        .library-picker-card:hover { border-color:#94a3b8; transform:translateY(-1px); box-shadow:0 14px 28px rgba(15,23,42,.1); }
+        .library-picker-thumb { width:100%; aspect-ratio:1; border-radius:12px; object-fit:cover; background:#f8fafc; border:1px solid #edf2f7; }
+        .library-picker-name { color:#111827; font-size:11px; font-weight:800; line-height:1.35; word-break:break-word; }
+        .library-picker-empty { min-height:220px; border:1px dashed #cbd5e1; border-radius:18px; display:flex; align-items:center; justify-content:center; text-align:center; color:#94a3b8; font-size:12px; font-weight:700; background:#f8fafc; }
+        .library-picker-actions { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+        .library-picker-loadmore { margin:0 auto; }
         .image-edit-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
         .image-edit-title { font-size:13px; font-weight:900; color:#111827; }
         .image-edit-sub { margin-top:3px; color:#94a3b8; font-size:11px; font-weight:600; }
@@ -556,6 +578,9 @@
         .theme-dark .llm-output,
         .theme-dark .model-row,
         .theme-dark .model-empty { background:var(--soft); border-color:var(--line); color:var(--muted); }
+        .theme-dark .image-source-btn { background:var(--card-solid); color:var(--muted); border-color:var(--line); box-shadow:none; }
+        .theme-dark .image-source-btn:hover { background:var(--soft); color:var(--text); border-color:var(--line); }
+        .theme-dark .image-source-btn.primary { background:#d8dee9; color:#0f172a; border-color:#d8dee9; }
         .theme-dark .llm-pane-resizer::before { background:#475569; }
         .theme-dark .group-node,
         .theme-dark .promptGroup-node,
@@ -563,7 +588,17 @@
         .theme-dark .promptGroup-node .node-head,
         .theme-dark .model-panel,
         .theme-dark .image-edit-panel,
+        .theme-dark .library-picker-panel,
         .theme-dark .gate-panel { background:var(--card); border-color:var(--line); }
+        .theme-dark .library-picker-title { color:var(--text); }
+        .theme-dark .library-picker-sub,
+        .theme-dark .library-picker-meta { color:var(--faint); }
+        .theme-dark .library-picker-search { background:#0f172a; color:var(--text); border-color:var(--line); }
+        .theme-dark .library-picker-card { background:var(--card-solid); border-color:var(--line); box-shadow:none; }
+        .theme-dark .library-picker-card:hover { background:var(--soft); border-color:#475569; }
+        .theme-dark .library-picker-thumb,
+        .theme-dark .library-picker-empty { background:var(--soft); border-color:var(--line); }
+        .theme-dark .library-picker-name { color:var(--text); }
         .theme-dark .provider-editor { background:var(--soft); border-color:var(--line); }
         .theme-dark .provider-field input,
         .theme-dark .provider-field select { background:#0f172a; color:var(--text); border-color:var(--line); }
@@ -625,6 +660,7 @@
         .theme-dark .image-edit-btn.secondary { background:var(--soft); color:var(--muted); border-color:var(--line); }
         .theme-dark .image-edit-btn.primary { background:#d8dee9; color:#0f172a; }
         .theme-dark .image-edit-modal { background:rgba(2,6,23,.66); }
+        .theme-dark .library-picker-modal { background:rgba(2,6,23,.66); }
         .theme-dark .error-modal,
         body.theme-dark .error-modal { background:rgba(2,6,23,.72); }
         .theme-dark .model-modal,
@@ -921,6 +957,26 @@
                 </div>
             </div>
         </div>
+        <div id="libraryPickerModal" class="library-picker-modal" onclick="closeLibraryPicker()">
+            <div class="library-picker-panel" onclick="event.stopPropagation()">
+                <div class="library-picker-head">
+                    <div>
+                        <div class="library-picker-title">资源库选图</div>
+                        <div class="library-picker-sub">从资源库中选择一张图片填入当前图片节点</div>
+                    </div>
+                    <button class="preview-icon-btn" type="button" onclick="closeLibraryPicker()" title="关闭" data-i18n-title="common.close"><i data-lucide="x" class="w-4 h-4"></i></button>
+                </div>
+                <div class="library-picker-toolbar">
+                    <input id="libraryPickerSearch" class="library-picker-search" type="text" placeholder="搜索标签、文件名..." data-i18n-placeholder="library.searchPlaceholder" oninput="debounceLibraryPickerSearch()">
+                    <button id="libraryPickerRefreshBtn" class="secondary-btn" type="button" onclick="reloadLibraryPicker()"><i data-lucide="refresh-cw" class="w-4 h-4"></i><span data-i18n="canvas.refresh">刷新列表</span></button>
+                    <div id="libraryPickerMeta" class="library-picker-meta"></div>
+                </div>
+                <div id="libraryPickerGrid" class="library-picker-grid"></div>
+                <div class="library-picker-actions">
+                    <button id="libraryPickerLoadMore" class="secondary-btn library-picker-loadmore" type="button" onclick="loadMoreLibraryPicker()" style="display:none">加载更多</button>
+                </div>
+            </div>
+        </div>
         <div id="errorModal" class="error-modal" onclick="closeErrorModal()">
             <div class="error-panel" onclick="event.stopPropagation()">
                 <div class="error-head">
@@ -1025,9 +1081,20 @@
         const outputRerunBtn = document.getElementById('outputRerunBtn');
         const logModal = document.getElementById('logModal');
         const logList = document.getElementById('logList');
+        const libraryPickerModal = document.getElementById('libraryPickerModal');
+        const libraryPickerGrid = document.getElementById('libraryPickerGrid');
+        const libraryPickerSearch = document.getElementById('libraryPickerSearch');
+        const libraryPickerMeta = document.getElementById('libraryPickerMeta');
+        const libraryPickerLoadMoreBtn = document.getElementById('libraryPickerLoadMore');
         const errorModal = document.getElementById('errorModal');
         const errorTitle = document.getElementById('errorTitle');
         const errorMessage = document.getElementById('errorMessage');
+        let libraryPickerTargetNodeId = '';
+        let libraryPickerImages = [];
+        let libraryPickerPage = 1;
+        let libraryPickerTotal = 0;
+        let libraryPickerLoading = false;
+        let libraryPickerSearchTimer = null;
         let canvases = [];
         let deletedCanvases = [];
         let canvas = null;
@@ -2940,14 +3007,22 @@
             const node = nodes.find(n => n.id === nodeId);
             if(!node || node.type !== 'image') return;
             closeCreateMenu();
-            imageNodeMenu.innerHTML = `<button class="menu-btn" data-image-replace="${escapeAttr(nodeId)}"><i data-lucide="image-plus" class="w-4 h-4"></i><span>替换</span></button>`;
+            imageNodeMenu.innerHTML = `
+                <button class="menu-btn" data-image-replace-local="${escapeAttr(nodeId)}"><i data-lucide="image-plus" class="w-4 h-4"></i><span>${langIsEn() ? 'Upload Local' : '本地上传'}</span></button>
+                <button class="menu-btn" data-image-replace-library="${escapeAttr(nodeId)}"><i data-lucide="library-big" class="w-4 h-4"></i><span>${tr('library.title')}</span></button>
+            `;
             imageNodeMenu.style.left = `${clientX}px`;
             imageNodeMenu.style.top = `${clientY}px`;
             imageNodeMenu.classList.add('open');
-            imageNodeMenu.querySelector('[data-image-replace]').onclick = e => {
+            imageNodeMenu.querySelector('[data-image-replace-local]').onclick = e => {
                 e.stopPropagation();
                 closeImageNodeMenu();
                 pickImageForNode(nodeId);
+            };
+            imageNodeMenu.querySelector('[data-image-replace-library]').onclick = e => {
+                e.stopPropagation();
+                closeImageNodeMenu();
+                openLibraryPicker(nodeId);
             };
             refreshIcons();
         }
@@ -3134,6 +3209,22 @@
                 scheduleSave();
             }
         }
+        function setImageNodeImage(nodeId, image){
+            const node = nodes.find(n => n.id === nodeId);
+            if(!node || node.type !== 'image' || !image?.url) return false;
+            node.url = image.url;
+            node.name = image.filename || image.name || outputImageName(image.url) || 'image';
+            render();
+            scheduleSave();
+            return true;
+        }
+        function openLocalImageFilePicker(onFiles){
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = () => onFiles?.(input.files);
+            input.click();
+        }
         function setImageNodeFromOutput(nodeId, url){
             const node = nodes.find(n => n.id === nodeId);
             if(!node || node.type !== 'image' || !url || isVideoUrl(url)) return;
@@ -3158,11 +3249,98 @@
             scheduleSave();
         }
         function pickImageForNode(nodeId){
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = () => fillImageNode(nodeId, input.files);
-            input.click();
+            openLocalImageFilePicker(files => fillImageNode(nodeId, files));
+        }
+        function renderLibraryPicker(){
+            if(!libraryPickerGrid) return;
+            if(!libraryPickerImages.length){
+                libraryPickerGrid.innerHTML = `<div class="library-picker-empty">${libraryPickerLoading ? (langIsEn() ? 'Loading library images...' : '正在加载资源库图片...') : tr('library.noImages')}</div>`;
+            } else {
+                libraryPickerGrid.innerHTML = libraryPickerImages.map(img => `
+                    <button class="library-picker-card" type="button" data-library-image-id="${escapeAttr(img.id)}">
+                        <img class="library-picker-thumb" src="${escapeAttr(img.thumb_url || img.url)}" alt="${escapeAttr(img.filename || 'image')}" loading="lazy">
+                        <div class="library-picker-name">${escapeHtml(img.filename || 'image')}</div>
+                    </button>
+                `).join('');
+                libraryPickerGrid.querySelectorAll('[data-library-image-id]').forEach(btn => {
+                    btn.onclick = () => applyLibraryImageToNode(btn.dataset.libraryImageId);
+                });
+            }
+            if(libraryPickerMeta){
+                const loaded = libraryPickerImages.length;
+                libraryPickerMeta.textContent = libraryPickerTotal ? `${loaded}/${libraryPickerTotal}` : `${loaded}`;
+            }
+            if(libraryPickerLoadMoreBtn){
+                libraryPickerLoadMoreBtn.style.display = libraryPickerImages.length && libraryPickerImages.length < libraryPickerTotal ? 'inline-flex' : 'none';
+                libraryPickerLoadMoreBtn.disabled = libraryPickerLoading;
+            }
+        }
+        async function loadLibraryPickerImages(reset=false){
+            if(libraryPickerLoading) return;
+            if(reset){
+                libraryPickerPage = 1;
+                libraryPickerImages = [];
+                libraryPickerTotal = 0;
+                renderLibraryPicker();
+            }
+            libraryPickerLoading = true;
+            if(libraryPickerLoadMoreBtn) libraryPickerLoadMoreBtn.disabled = true;
+            try {
+                const params = new URLSearchParams({
+                    page: String(libraryPickerPage),
+                    page_size: '60'
+                });
+                const q = String(libraryPickerSearch?.value || '').trim();
+                if(q) params.set('q', q);
+                const res = await fetch('/api/library/images?' + params.toString());
+                if(!res.ok) throw new Error(await responseErrorMessage(res, langIsEn() ? 'Failed to load library images' : '加载资源库图片失败'));
+                const data = await res.json();
+                const incoming = Array.isArray(data.images) ? data.images : [];
+                libraryPickerTotal = Number(data.total || 0);
+                libraryPickerImages = reset ? incoming : [...libraryPickerImages, ...incoming];
+                libraryPickerPage += 1;
+            } catch(err) {
+                showErrorModal(err.message || (langIsEn() ? 'Failed to load library images' : '加载资源库图片失败'));
+            } finally {
+                libraryPickerLoading = false;
+                renderLibraryPicker();
+            }
+        }
+        function reloadLibraryPicker(){
+            loadLibraryPickerImages(true);
+        }
+        function loadMoreLibraryPicker(){
+            if(libraryPickerImages.length >= libraryPickerTotal) return;
+            loadLibraryPickerImages(false);
+        }
+        function debounceLibraryPickerSearch(){
+            clearTimeout(libraryPickerSearchTimer);
+            libraryPickerSearchTimer = setTimeout(() => loadLibraryPickerImages(true), 220);
+        }
+        function openLibraryPicker(nodeId){
+            if(!ensureCanvas()) return;
+            libraryPickerTargetNodeId = nodeId;
+            if(libraryPickerModal) libraryPickerModal.classList.add('open');
+            libraryPickerPage = 1;
+            libraryPickerTotal = 0;
+            libraryPickerImages = [];
+            renderLibraryPicker();
+            loadLibraryPickerImages(true);
+            refreshIcons();
+        }
+        function closeLibraryPicker(){
+            if(libraryPickerModal) libraryPickerModal.classList.remove('open');
+            clearTimeout(libraryPickerSearchTimer);
+            libraryPickerTargetNodeId = '';
+        }
+        function applyLibraryImageToNode(imageId){
+            const image = libraryPickerImages.find(item => item.id === imageId);
+            if(!image) return;
+            if(!setImageNodeImage(libraryPickerTargetNodeId, image)){
+                showErrorModal(langIsEn() ? 'Unable to set image node from library selection' : '无法将资源库图片填入当前图片节点');
+                return;
+            }
+            closeLibraryPicker();
         }
         function cropBounds(){
             const img = document.getElementById('cropImage');
@@ -3962,9 +4140,28 @@
                         loadedImg.onload = () => refreshGeometryAfterLayout();
                     }
                 } else {
-                body.innerHTML = `<div class="blank-image"><i data-lucide="image-plus" class="w-7 h-7"></i><div class="text-[11px] font-bold">${tr('canvas.clickDragPasteImage')}</div></div>`;
+                body.innerHTML = `
+                    <div class="blank-image">
+                        <i data-lucide="image-plus" class="w-7 h-7"></i>
+                        <div class="text-[11px] font-bold">${tr('canvas.clickDragPasteImage')}</div>
+                        <div class="image-source-actions">
+                            <button class="image-source-btn primary" type="button" data-image-source="local"><i data-lucide="image-up" class="w-3.5 h-3.5"></i><span>${langIsEn() ? 'Local' : '本地'}</span></button>
+                            <button class="image-source-btn" type="button" data-image-source="library"><i data-lucide="library-big" class="w-3.5 h-3.5"></i><span>${tr('library.title')}</span></button>
+                        </div>
+                    </div>`;
                     const blank = body.querySelector('.blank-image');
-                    blank.onclick = () => pickImageForNode(node.id);
+                    blank.onclick = e => {
+                        if(e.target.closest('button')) return;
+                        pickImageForNode(node.id);
+                    };
+                    blank.querySelector('[data-image-source="local"]').onclick = e => {
+                        e.stopPropagation();
+                        pickImageForNode(node.id);
+                    };
+                    blank.querySelector('[data-image-source="library"]').onclick = e => {
+                        e.stopPropagation();
+                        openLibraryPicker(node.id);
+                    };
                     blank.ondragover = e => { if(hasImageFiles(e.dataTransfer?.items) || hasOutputImageDrag(e.dataTransfer)){ e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = hasOutputImageDrag(e.dataTransfer) ? 'copy' : 'move'; blank.classList.add('drag-over'); dropOverlay.classList.remove('active'); } };
                     blank.ondragleave = e => { e.stopPropagation(); blank.classList.remove('drag-over'); };
                     blank.ondrop = e => {
