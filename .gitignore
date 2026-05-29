@@ -14,4 +14,5 @@ assets/
 data/canvases/
 data/library/
 data/library.json
+data/agent_tasks/
 *.spec

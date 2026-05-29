@@ -36,6 +36,8 @@
         .glass-btn.danger { background:#ef4444; }
         .glass-btn.danger:hover { background:#dc2626; }
         .glass-btn.sm { padding:5px 12px; font-size:11px; border-radius:8px; }
+        .glass-btn.agent { background:#0f172a; color:#fff; }
+        .glass-btn.agent:hover { background:#020617; }
         .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
         .filter-pills { display:flex; gap:6px; flex-wrap:wrap; }
         .pill { background:#f3f4f6; border:1px solid transparent; border-radius:999px; padding:5px 14px; font-size:12px; font-weight:500; cursor:pointer; transition:all .2s var(--easing); color:#6b7280; white-space:nowrap; }
@@ -46,6 +48,7 @@
         .image-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:16px; }
         .image-card { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; cursor:pointer; transition:all .3s var(--easing); position:relative; }
         .image-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.08); }
+        .image-card.selected { border-color:#0f172a; box-shadow:0 0 0 2px rgba(15,23,42,.08), 0 8px 24px rgba(0,0,0,.08); }
         .image-card .thumb { width:100%; aspect-ratio:1; object-fit:cover; display:block; background:#f3f4f6; }
         .image-card .card-info { padding:10px 12px; }
         .image-card .card-filename { font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -53,6 +56,37 @@
         .image-card .card-tag { background:#f3f4f6; border-radius:6px; padding:2px 7px; font-size:10px; color:#6b7280; }
         .image-card .card-cat { position:absolute; top:8px; left:8px; background:rgba(17,24,39,.75); color:#fff; border-radius:8px; padding:2px 8px; font-size:10px; font-weight:600; backdrop-filter:blur(4px); }
         .image-card .card-fav { position:absolute; top:8px; right:8px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.8); border-radius:50%; font-size:12px; }
+        .image-card .card-select {
+            position:absolute;
+            top:8px;
+            right:38px;
+            width:24px;
+            height:24px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:rgba(255,255,255,.9);
+            border-radius:50%;
+            border:1px solid rgba(15,23,42,.08);
+            color:#64748b;
+            cursor:pointer;
+            z-index:2;
+        }
+        .image-card.selected .card-select {
+            background:#0f172a;
+            color:#fff;
+            border-color:#0f172a;
+        }
+        .selection-summary {
+            display:none;
+            align-items:center;
+            gap:8px;
+            padding:0 4px;
+            color:var(--muted);
+            font-size:12px;
+            font-weight:600;
+        }
+        .selection-summary.show { display:flex; }
         .drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,.3); z-index:100; opacity:0; pointer-events:none; transition:opacity .3s; }
         .drawer-overlay.open { opacity:1; pointer-events:auto; }
         .drawer { position:fixed; top:0; right:-480px; width:480px; height:100vh; background:var(--card); border-left:1px solid var(--border); z-index:101; transition:right .35s var(--easing); overflow-y:auto; box-shadow:-8px 0 32px rgba(0,0,0,.08); }
@@ -143,6 +177,10 @@
                 <div class="stats-bar" id="stats-bar"></div>
             </div>
             <div style="display:flex;gap:8px">
+                <button class="glass-btn agent" onclick="planAgentForLibrary()">
+                    <i data-lucide="sparkles" style="width:14px;height:14px"></i>
+                    <span>让助手整理当前结果</span>
+                </button>
                 <button class="glass-btn outline" onclick="openSourcesModal()" data-i18n="library.manageSources">管理来源</button>
                 <button class="glass-btn" onclick="openAddSourceModal()">
                     <i data-lucide="plus" style="width:14px;height:14px"></i>
@@ -171,6 +209,19 @@
                 <i data-lucide="sparkles" style="width:12px;height:12px"></i>
                 <span data-i18n="library.aiTag">AI 标注</span>
             </button>
+            <button class="glass-btn outline sm" onclick="planAgentForLibraryTag()">
+                <i data-lucide="wand-sparkles" style="width:12px;height:12px"></i>
+                <span>让助手批量标注</span>
+            </button>
+            <button class="glass-btn outline sm" onclick="sendVisibleToAgentCanvas()">
+                <i data-lucide="gallery-horizontal-end" style="width:12px;height:12px"></i>
+                <span>发送到智能画布</span>
+            </button>
+            <div class="selection-summary" id="selection-summary">
+                <span id="selection-count">0</span>
+                <span>张已选</span>
+                <button class="glass-btn outline sm" onclick="clearSelection()">清空</button>
+            </div>
         </div>
 
         <!-- Image Grid -->
@@ -344,6 +395,7 @@
     // --- State ---
     let allImages = [];
     let currentImageId = null;
+    let selectedImageIds = new Set();
     let currentPage = 1;
     let totalImages = 0;
     let filterUntagged = false;
@@ -381,6 +433,81 @@
 
     function currentImageRecord() {
         return allImages.find(i => i.id === currentImageId) || null;
+    }
+
+    function currentSelectedImages() {
+        return allImages.filter(img => selectedImageIds.has(img.id));
+    }
+
+    function currentSourceRecord() {
+        const sourceId = document.getElementById('source-filter')?.value || '';
+        return sources.find(s => s.id === sourceId) || null;
+    }
+
+    function currentLibraryTagConfig() {
+        const providerId = document.getElementById('tag-provider')?.value || '';
+        const model = document.getElementById('tag-model')?.value || '';
+        const provider = allProviders.find(item => item.id === providerId) || null;
+        return {
+            provider: providerId,
+            provider_label: provider?.name || providerId || '',
+            model,
+            model_label: model || ''
+        };
+    }
+
+    function buildLibraryAgentContext(extra = {}) {
+        const source = currentSourceRecord();
+        const query = document.getElementById('search-input')?.value.trim() || '';
+        return {
+            active_page: 'library',
+            active_page_label: '资源库',
+            source_id: source?.id || '',
+            source_name: source?.name || '',
+            category: activeCategory || '',
+            query,
+            visible_count: allImages.length,
+            selected_count: selectedImageIds.size,
+            selected_image_ids: Array.from(selectedImageIds),
+            filter_untagged: filterUntagged,
+            filter_favorited: filterFav,
+            ...extra
+        };
+    }
+
+    function updateSelectionSummary() {
+        const wrap = document.getElementById('selection-summary');
+        const count = document.getElementById('selection-count');
+        const size = selectedImageIds.size;
+        count.textContent = String(size);
+        wrap.classList.toggle('show', size > 0);
+    }
+
+    function clearSelection() {
+        selectedImageIds.clear();
+        updateSelectionSummary();
+        renderGrid();
+    }
+
+    function toggleImageSelection(id, event) {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        if (!id) return;
+        if (selectedImageIds.has(id)) selectedImageIds.delete(id);
+        else selectedImageIds.add(id);
+        updateSelectionSummary();
+        renderGrid();
+    }
+
+    function requestTopAgent(payload) {
+        if (window.top && window.top !== window) {
+            window.top.postMessage({
+                type: 'studio-agent-request',
+                ...payload
+            }, '*');
+            return true;
+        }
+        return false;
     }
 
     function smartCanvasImportPayload(images, canvasId = '') {
@@ -437,6 +564,54 @@
             toast(`${tr('library.createSmartCanvasFailed')}: ${e.message}`, 'error');
         } finally {
             setBtnLoading(btn, false);
+        }
+    }
+
+    function planAgentForLibrary() {
+        const ok = requestTopAgent({
+            page: 'library',
+            goal: '整理当前资源库结果并给出下一步建议',
+            context: buildLibraryAgentContext()
+        });
+        if (!ok) {
+            toast('当前不在工作台主容器中，无法打开顶层 Agent。', 'error');
+        }
+    }
+
+    function planAgentForLibraryTag() {
+        const selected = currentSelectedImages();
+        const tagConfig = currentLibraryTagConfig();
+        const ok = requestTopAgent({
+            page: 'library',
+            goal: selected.length ? '给当前选中的资源库图片批量打标签和分类' : '给当前资源库结果批量打标签和分类',
+            context: buildLibraryAgentContext({
+                intent: 'batch_tag',
+                provider: tagConfig.provider,
+                provider_label: tagConfig.provider_label,
+                model: tagConfig.model,
+                model_label: tagConfig.model_label,
+                selected_image_ids: selected.map(img => img.id),
+                visible_image_ids: allImages.slice(0, 100).map(img => img.id)
+            })
+        });
+        if (!ok) {
+            toast('当前不在工作台主容器中，无法打开顶层 Agent。', 'error');
+        }
+    }
+
+    function sendVisibleToAgentCanvas() {
+        const selected = currentSelectedImages();
+        const ok = requestTopAgent({
+            page: 'library',
+            goal: selected.length ? '把当前选中的资源库图片送入智能画布并生成草稿计划' : '把当前资源库结果送入智能画布并生成草稿计划',
+            context: buildLibraryAgentContext({
+                intent: 'send_to_smart_canvas',
+                visible_image_ids: allImages.slice(0, 50).map(img => img.id),
+                selected_image_ids: selected.map(img => img.id)
+            })
+        });
+        if (!ok) {
+            toast('当前不在工作台主容器中，无法打开顶层 Agent。', 'error');
         }
     }
 
@@ -688,7 +863,10 @@
             } else {
                 allImages = data.images || [];
             }
+            const visibleIds = new Set(allImages.map(img => img.id));
+            selectedImageIds = new Set(Array.from(selectedImageIds).filter(id => visibleIds.has(id)));
             totalImages = data.total;
+            updateSelectionSummary();
             renderGrid();
         } catch(e) {
             console.error('loadImages failed:', e);
@@ -710,10 +888,12 @@
         grid.innerHTML = allImages.map(img => {
             const cat = (img.categories && img.categories[0]) || '';
             const tags = (img.tags || []).slice(0, 3);
+            const selected = selectedImageIds.has(img.id);
             return `
-                <div class="image-card" onclick="openDrawer('${img.id}')">
+                <div class="image-card ${selected ? 'selected' : ''}" onclick="openDrawer('${img.id}')">
                     <img class="thumb" src="${esc(img.thumb_url || img.url)}" alt="" loading="lazy" onerror="this.style.background='#f3f4f6'">
                     ${cat ? `<div class="card-cat">${esc(cat)}</div>` : ''}
+                    <button class="card-select" onclick="toggleImageSelection('${img.id}', event)" title="${selected ? '取消选择' : '选择'}">${selected ? '&#10003;' : '+'}</button>
                     ${img.favorited ? `<div class="card-fav">&#10084;</div>` : ''}
                     <div class="card-info">
                         <div class="card-filename">${esc(img.filename)}</div>

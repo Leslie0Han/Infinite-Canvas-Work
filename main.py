@@ -19,12 +19,24 @@ from threading import Lock
 import httpx
 from PIL import Image
 from io import BytesIO
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Header, Request
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Header, Request, BackgroundTasks
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response, StreamingResponse, JSONResponse
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
+from agent_runtime import (
+    cancel_task as agent_cancel_task,
+    create_plan_task,
+    fail_task as agent_fail_task,
+    list_agent_tools,
+    load_task as load_agent_task,
+    start_task as agent_start_task,
+    task_is_cancelled as agent_task_is_cancelled,
+    update_task_plan as agent_update_task_plan,
+    update_task_progress as agent_update_task_progress,
+    update_task_result as agent_update_task_result,
+)
 
 QUIET_ACCESS_PATHS = {
     "/api/queue_status",
@@ -181,9 +193,12 @@ API_ENV_FILE = os.path.join(BASE_DIR, "API", ".env")
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CONVERSATION_DIR = os.path.join(DATA_DIR, "conversations")
 CANVAS_DIR = os.path.join(DATA_DIR, "canvases")
+AGENT_TASK_DIR = os.path.join(DATA_DIR, "agent_tasks")
 API_PROVIDERS_FILE = os.path.join(DATA_DIR, "api_providers.json")
 GLOBAL_CONFIG_FILE = os.path.join(BASE_DIR, "global_config.json")
 CANVAS_TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
+AGENT_SMART_CANVAS_LIMIT = 12
+AGENT_LIBRARY_TAG_LIMIT = 20
 
 QUEUE = []
 QUEUE_LOCK = Lock()
@@ -193,6 +208,7 @@ CONVERSATION_LOCK = Lock()
 CANVAS_LOCK = Lock()
 LIBRARY_LOCK = Lock()
 LOAD_LOCK = Lock()
+AGENT_TASK_LOCK = Lock()
 
 LIBRARY_DIR = os.path.join(DATA_DIR, "library")
 LIBRARY_SOURCES_FILE = os.path.join(DATA_DIR, "library.json")
@@ -899,6 +915,17 @@ class LibraryTagRequest(BaseModel):
 class LibraryCategoryUpdate(BaseModel):
     custom: List[str]
 
+
+class AgentPlanRequest(BaseModel):
+    goal: str = ""
+    page: str = "home"
+    context: Dict[str, Any] = {}
+
+
+class AgentRunRequest(BaseModel):
+    task_id: str
+    context_overrides: Dict[str, Any] = {}
+
 class LibraryImportRequest(BaseModel):
     urls: List[str]
     source_name: str = "智能画布"
@@ -1137,6 +1164,332 @@ def new_canvas(title="未命名画布", icon="layers", kind="classic"):
     }
     save_canvas(canvas)
     return canvas
+
+
+def smart_canvas_node_image_from_library_image(img):
+    return {
+        "url": img.get("url", ""),
+        "name": img.get("filename") or "library-image",
+        "width": int(img.get("width") or 0),
+        "height": int(img.get("height") or 0),
+        "natural_w": int(img.get("width") or 0),
+        "natural_h": int(img.get("height") or 0),
+        "thumb_url": img.get("thumb_url") or "",
+        "library_image_id": img.get("id") or "",
+        "library_source_id": img.get("source_id") or "",
+        "library_source_name": img.get("source_name") or img.get("source_id") or "",
+        "library_categories": (img.get("categories") or [])[:8],
+        "library_tags": (img.get("tags") or [])[:24],
+    }
+
+
+def create_smart_canvas_image_node(images: List[Dict[str, Any]], x: int = 120, y: int = 120):
+    node_images = [smart_canvas_node_image_from_library_image(img) for img in images if img.get("url")]
+    return {
+        "id": f"smart_{uuid.uuid4().hex[:12]}",
+        "type": "smart-image",
+        "x": x,
+        "y": y,
+        "title": "Group" if len(node_images) > 1 else "Image",
+        "images": node_images,
+        "created_at": now_ms(),
+    }
+
+
+def library_agent_target_source_label(context: Dict[str, Any], source_mode: str) -> str:
+    if source_mode == "selected":
+        return "当前选中"
+    if source_mode == "visible":
+        return "当前可见"
+    has_filter = any([
+        str(context.get("source_id") or "").strip(),
+        str(context.get("category") or "").strip(),
+        str(context.get("query") or "").strip(),
+        bool(context.get("filter_favorited")),
+        bool(context.get("filter_untagged")),
+    ])
+    return "当前筛选" if has_filter else "全部资源库"
+
+
+def resolve_library_agent_matches(context: Dict[str, Any], limit: int, enrich: bool = False):
+    source_id = str(context.get("source_id") or "").strip()
+    category = str(context.get("category") or "").strip()
+    q = str(context.get("query") or "").strip().lower()
+    favorited = bool(context.get("filter_favorited"))
+    untagged = bool(context.get("filter_untagged"))
+    selected_image_ids = [str(x).strip() for x in (context.get("selected_image_ids") or []) if str(x).strip()]
+    visible_image_ids = [str(x).strip() for x in (context.get("visible_image_ids") or []) if str(x).strip()]
+
+    images = load_library_images()
+    source_map = {str(s.get("id") or ""): s for s in load_library_sources()}
+    result = images[:]
+    source_mode = "filtered"
+    if selected_image_ids:
+        selected_set = set(selected_image_ids)
+        result = [img for img in result if str(img.get("id") or "") in selected_set]
+        source_mode = "selected"
+    elif visible_image_ids:
+        visible_set = set(visible_image_ids)
+        result = [img for img in result if str(img.get("id") or "") in visible_set]
+        source_mode = "visible"
+    elif source_id:
+        result = [img for img in result if img.get("source_id") == source_id]
+    if category:
+        result = [img for img in result if category in (img.get("categories") or [])]
+    if q:
+        def match_q(img):
+            searchable = " ".join([
+                img.get("filename", ""),
+                " ".join(img.get("categories", [])),
+                " ".join(img.get("tags", [])),
+                " ".join(img.get("ai_tags", [])),
+                " ".join(img.get("manual_tags", [])),
+                img.get("notes", ""),
+            ]).lower()
+            return q in searchable
+        result = [img for img in result if match_q(img)]
+    if favorited:
+        result = [img for img in result if img.get("favorited")]
+    if untagged:
+        result = [img for img in result if not img.get("ai_tagged")]
+    limited = result[:limit]
+    items = [enrich_library_image_record(img, source_map) for img in limited] if enrich else limited
+    matched_total = len(result)
+    return {
+        "items": items,
+        "matched_total": matched_total,
+        "effective_count": len(limited),
+        "limit": limit,
+        "truncated": matched_total > limit,
+        "target_source": source_mode,
+        "target_source_label": library_agent_target_source_label(context, source_mode),
+    }
+
+
+def filter_library_images_for_agent(context: Dict[str, Any], limit: int = AGENT_SMART_CANVAS_LIMIT):
+    resolved = resolve_library_agent_matches(context, limit=limit, enrich=True)
+    return resolved["items"], resolved["matched_total"]
+
+
+def library_tag_targets_for_agent(context: Dict[str, Any], limit: int = AGENT_LIBRARY_TAG_LIMIT):
+    resolved = resolve_library_agent_matches(context, limit=limit, enrich=False)
+    return resolved["items"]
+
+
+def build_agent_plan_preview(page_role: str, tool_ids: List[str], context: Dict[str, Any]) -> Dict[str, Any]:
+    context = context or {}
+    if page_role == "library" and "create_smart_canvas" in tool_ids and "append_images_to_smart_canvas" in tool_ids:
+        resolved = resolve_library_agent_matches(context, limit=AGENT_SMART_CANVAS_LIMIT, enrich=True)
+        preview = {
+            "target_source": resolved["target_source"],
+            "target_source_label": resolved["target_source_label"],
+            "matched_total": resolved["matched_total"],
+            "effective_count": resolved["effective_count"],
+            "limit": resolved["limit"],
+            "truncated": resolved["truncated"],
+            "write_target": "new_smart_canvas",
+            "write_target_label": "新智能画布",
+            "can_run": resolved["effective_count"] > 0,
+            "blockers": [],
+            "warnings": [],
+        }
+        if preview["effective_count"] <= 0:
+            preview["blockers"].append("当前资源库上下文里没有可送入智能画布的图片。")
+        if preview["truncated"]:
+            preview["warnings"].append(f"命中 {preview['matched_total']} 张，只会送入前 {preview['limit']} 张。")
+        return preview
+
+    if page_role == "library" and "tag_library_images" in tool_ids:
+        resolved = resolve_library_agent_matches(context, limit=AGENT_LIBRARY_TAG_LIMIT, enrich=False)
+        provider = str(context.get("provider") or "").strip()
+        model = str(context.get("model") or "").strip()
+        preview = {
+            "target_source": resolved["target_source"],
+            "target_source_label": resolved["target_source_label"],
+            "matched_total": resolved["matched_total"],
+            "effective_count": resolved["effective_count"],
+            "limit": resolved["limit"],
+            "truncated": resolved["truncated"],
+            "write_target": "library_tags",
+            "write_target_label": "资源库标签与分类",
+            "provider": provider,
+            "model": model,
+            "can_run": resolved["effective_count"] > 0 and bool(model),
+            "blockers": [],
+            "warnings": [],
+        }
+        if preview["effective_count"] <= 0:
+            preview["blockers"].append("当前资源库上下文里没有可用于批量标注的图片。")
+        if not model:
+            preview["blockers"].append("请先选择用于批量标注的 Provider 和模型。")
+        if preview["truncated"]:
+            preview["warnings"].append(f"命中 {preview['matched_total']} 张，只会标注前 {preview['limit']} 张。")
+        return preview
+
+    if page_role == "smart-canvas" and "save_canvas_node_images_to_library" in tool_ids:
+        selected_urls = [str(x).strip() for x in (context.get("selected_image_urls") or []) if str(x).strip()]
+        count = len(selected_urls)
+        preview = {
+            "target_source": "selected",
+            "target_source_label": "当前选中节点图片",
+            "matched_total": count,
+            "effective_count": count,
+            "limit": count,
+            "truncated": False,
+            "write_target": "library",
+            "write_target_label": "资源库",
+            "can_run": count > 0,
+            "blockers": [],
+            "warnings": [],
+        }
+        if count <= 0:
+            preview["blockers"].append("当前智能画布没有选中可入库的图片。")
+        return preview
+
+    return {
+        "target_source": "context",
+        "target_source_label": "当前上下文",
+        "matched_total": 0,
+        "effective_count": 0,
+        "limit": 0,
+        "truncated": False,
+        "write_target": "none",
+        "write_target_label": "无写入",
+        "can_run": True,
+        "blockers": [],
+        "warnings": [],
+    }
+
+
+def merge_agent_context(task: Dict[str, Any], overrides: Dict[str, Any]) -> Dict[str, Any]:
+    merged = dict(task.get("context") or {})
+    for key, value in (overrides or {}).items():
+        merged[key] = value
+    return merged
+
+
+def decorate_agent_task_preview(task_dir: str, task: Dict[str, Any]) -> Dict[str, Any]:
+    plan = task.get("plan") or {}
+    preview = build_agent_plan_preview(
+        str(plan.get("page_role") or task.get("page_role") or ""),
+        list(plan.get("tool_ids") or []),
+        task.get("context") or {},
+    )
+    return agent_update_task_plan(
+        task_dir,
+        task["id"],
+        preview=preview,
+        blockers=preview.get("blockers") or [],
+        can_run=bool(preview.get("can_run", True)),
+    )
+
+
+def import_urls_into_library(
+    urls: List[str],
+    source_name: str = "智能画布",
+    canvas_id: str = "",
+    canvas_title: str = "",
+    node_id: str = "",
+    manual_tags: Optional[List[str]] = None,
+    categories: Optional[List[str]] = None,
+):
+    urls = [str(url or "").strip() for url in urls[:200] if str(url or "").strip()]
+    if not urls:
+        raise HTTPException(status_code=400, detail="没有可导入的素材")
+
+    source_slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", (source_name or "smart-canvas").strip().lower()).strip("-") or "smart-canvas"
+    source_id = f"smart-{source_slug}"[:48]
+    source_name = (source_name or "智能画布").strip()[:80] or "智能画布"
+    source_folder = os.path.join(LIBRARY_DIR, source_id, "files")
+    os.makedirs(source_folder, exist_ok=True)
+    os.makedirs(os.path.join(LIBRARY_DIR, source_id, "thumbs"), exist_ok=True)
+
+    sources = load_library_sources()
+    src = next((s for s in sources if s.get("id") == source_id), None)
+    if not src:
+        src = {
+            "id": source_id,
+            "name": source_name,
+            "type": "local",
+            "path": source_folder,
+            "enabled": True,
+            "created_at": now_ms(),
+            "last_scan_at": 0,
+            "managed_by": "smart-canvas",
+        }
+        sources.insert(0, src)
+    else:
+        src["name"] = source_name
+        src["type"] = "local"
+        src["path"] = source_folder
+        src["enabled"] = True
+
+    images = load_library_images()
+    categories = [str(x).strip() for x in (categories or []) if str(x).strip()][:8]
+    manual_tags = [str(x).strip() for x in (manual_tags or []) if str(x).strip()][:24]
+    imported = []
+    skipped = []
+
+    for index, url in enumerate(urls, start=1):
+        path = local_asset_path_from_url(url)
+        if not path or not os.path.isfile(path):
+            skipped.append({"url": url, "reason": "missing"})
+            continue
+        mime = content_type_for_path(path)
+        if not mime.startswith("image/"):
+            skipped.append({"url": url, "reason": "not_image"})
+            continue
+        base = os.path.basename(path) or f"image-{index}.png"
+        stem, ext = os.path.splitext(base)
+        ext = ext or ".png"
+        archive_name = f"{re.sub(r'[^a-zA-Z0-9._-]+', '_', stem)[:80]}{ext.lower()}"
+        target_path = os.path.join(source_folder, archive_name)
+        suffix = 2
+        while os.path.exists(target_path):
+            target_path = os.path.join(source_folder, f"{re.sub(r'[^a-zA-Z0-9._-]+', '_', stem)[:72]}-{suffix}{ext.lower()}")
+            suffix += 1
+        shutil.copy2(path, target_path)
+        thumb_name, w, h = create_library_thumb_from_path(target_path, source_id)
+        filename = os.path.basename(target_path)
+        record = {
+            "id": f"img_{uuid.uuid4().hex[:12]}",
+            "source_id": source_id,
+            "source_name": source_name,
+            "source_canvas_id": canvas_id,
+            "source_canvas_title": canvas_title,
+            "source_node_id": node_id,
+            "filename": filename,
+            "local_path": target_path,
+            "url": f"/api/library/file/{source_id}/{urllib.parse.quote(filename)}",
+            "thumb_url": f"/api/library/thumb/{source_id}/{thumb_name}",
+            "width": w,
+            "height": h,
+            "size_bytes": os.path.getsize(target_path),
+            "categories": categories[:],
+            "tags": list(dict.fromkeys(manual_tags)),
+            "ai_tags": [],
+            "ai_tagged": False,
+            "ai_tag_model": "",
+            "manual_tags": manual_tags[:],
+            "favorited": False,
+            "notes": "\n".join([
+                line for line in [
+                    f"来自智能画布：{canvas_title}" if canvas_title else "",
+                    f"画布ID：{canvas_id}" if canvas_id else "",
+                    f"节点ID：{node_id}" if node_id else "",
+                    f"原始路径：{url}",
+                ] if line
+            ]),
+            "created_at": now_ms(),
+            "updated_at": now_ms(),
+        }
+        images.append(record)
+        imported.append(record)
+
+    src["last_scan_at"] = now_ms()
+    save_library_sources(sources)
+    save_library_images(images)
+    return {"imported": imported, "count": len(imported), "skipped": skipped, "source_id": source_id}
 
 def load_canvas(canvas_id):
     path = canvas_path(canvas_id)
@@ -1964,6 +2317,374 @@ def upstream_message_from_record(item):
 @app.get("/")
 async def index():
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+
+def agent_task_cancelled(task_id: str) -> bool:
+    with AGENT_TASK_LOCK:
+        return agent_task_is_cancelled(AGENT_TASK_DIR, task_id)
+
+
+def agent_task_progress(
+    task_id: str,
+    *,
+    step_id: str = "",
+    message: str = "",
+    progress_current: Optional[int] = None,
+    progress_total: Optional[int] = None,
+    event_type: str = "progress",
+):
+    with AGENT_TASK_LOCK:
+        return agent_update_task_progress(
+            AGENT_TASK_DIR,
+            task_id,
+            step_id=step_id,
+            message=message,
+            progress_current=progress_current,
+            progress_total=progress_total,
+            event_type=event_type,
+        )
+
+
+async def run_library_to_smart_canvas_task(task_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    agent_task_progress(
+        task_id,
+        step_id="list_library_images",
+        message="正在解析资源库目标图片...",
+        progress_current=0,
+        progress_total=3,
+        event_type="step",
+    )
+    if agent_task_cancelled(task_id):
+        return load_agent_task(AGENT_TASK_DIR, task_id)
+
+    resolved = resolve_library_agent_matches(context, limit=AGENT_SMART_CANVAS_LIMIT, enrich=True)
+    images = resolved["items"]
+    total = resolved["matched_total"]
+    if not images:
+        raise HTTPException(status_code=400, detail="当前资源库上下文里没有可用于创建智能画布的图片")
+
+    agent_task_progress(
+        task_id,
+        step_id="create_smart_canvas",
+        message="正在创建智能画布...",
+        progress_current=1,
+        progress_total=3,
+        event_type="step",
+    )
+    if agent_task_cancelled(task_id):
+        return load_agent_task(AGENT_TASK_DIR, task_id)
+
+    source_name = str(context.get("source_name") or "").strip()
+    category = str(context.get("category") or "").strip()
+    query = str(context.get("query") or "").strip()
+    title_bits = [bit for bit in [source_name, category, query] if bit]
+    canvas_title = " · ".join(title_bits[:2]) if title_bits else "资源库智能画布草稿"
+    canvas = new_canvas(title=canvas_title[:80], icon="sparkles", kind="smart")
+
+    agent_task_progress(
+        task_id,
+        step_id="append_images_to_smart_canvas",
+        message=f"正在插入 {len(images)} 张图片到智能画布...",
+        progress_current=2,
+        progress_total=3,
+        event_type="step",
+    )
+    if agent_task_cancelled(task_id):
+        return load_agent_task(AGENT_TASK_DIR, task_id)
+
+    node = create_smart_canvas_image_node(images, x=120, y=120)
+    canvas["nodes"] = [node]
+    canvas["connections"] = []
+    canvas["settings"] = canvas.get("settings") or {}
+    save_canvas(canvas)
+
+    agent_task_progress(
+        task_id,
+        step_id="append_images_to_smart_canvas",
+        message="智能画布已创建，图片插入完成。",
+        progress_current=3,
+        progress_total=3,
+    )
+    if agent_task_cancelled(task_id):
+        return load_agent_task(AGENT_TASK_DIR, task_id)
+
+    result = {
+        "kind": "smart_canvas_created",
+        "canvas_id": canvas["id"],
+        "canvas_title": canvas["title"],
+        "open_url": f"/static/smart-canvas.html?id={urllib.parse.quote(canvas['id'])}&v=20260521-smart-library-workflow",
+        "inserted_image_count": len(node["images"]),
+        "matched_total": total,
+        "processed_count": len(node["images"]),
+        "truncated": total > len(node["images"]),
+        "target_source_label": resolved["target_source_label"],
+        "node_id": node["id"],
+    }
+    with AGENT_TASK_LOCK:
+        return agent_update_task_result(
+            AGENT_TASK_DIR,
+            task_id,
+            result=result,
+            message=f"已创建智能画布《{canvas['title']}》，并插入 {len(node['images'])} 张图片。",
+        )
+
+
+async def run_smart_canvas_to_library_task(task_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    selected_urls = [str(x).strip() for x in (context.get("selected_image_urls") or []) if str(x).strip()]
+    agent_task_progress(
+        task_id,
+        step_id="read_smart_canvas",
+        message="正在读取当前智能画布选中结果...",
+        progress_current=0,
+        progress_total=2,
+        event_type="step",
+    )
+    if not selected_urls:
+        raise HTTPException(status_code=400, detail="当前智能画布上下文里没有可回存到资源库的图片")
+    if agent_task_cancelled(task_id):
+        return load_agent_task(AGENT_TASK_DIR, task_id)
+
+    agent_task_progress(
+        task_id,
+        step_id="save_canvas_node_images_to_library",
+        message=f"正在回存 {len(selected_urls)} 张图片到资源库...",
+        progress_current=1,
+        progress_total=2,
+        event_type="step",
+    )
+    if agent_task_cancelled(task_id):
+        return load_agent_task(AGENT_TASK_DIR, task_id)
+
+    canvas_title = str(context.get("canvas_title") or "").strip()
+    canvas_id = str(context.get("canvas_id") or "").strip()
+    node_id = str(context.get("selected_node_id") or "").strip()
+    import_result = import_urls_into_library(
+        urls=selected_urls,
+        source_name="智能画布",
+        canvas_id=canvas_id,
+        canvas_title=canvas_title,
+        node_id=node_id,
+        manual_tags=[canvas_title or "智能画布"],
+    )
+    count = int(import_result.get("count", 0) or 0)
+    skipped = import_result.get("skipped") or []
+
+    agent_task_progress(
+        task_id,
+        step_id="save_canvas_node_images_to_library",
+        message="资源库回存已完成。",
+        progress_current=2,
+        progress_total=2,
+    )
+    if agent_task_cancelled(task_id):
+        return load_agent_task(AGENT_TASK_DIR, task_id)
+
+    result = {
+        "kind": "library_imported",
+        "count": count,
+        "processed_count": count,
+        "skipped_count": len(skipped),
+        "source_id": import_result.get("source_id", ""),
+        "imported_ids": [item.get("id") for item in import_result.get("imported", [])],
+        "skipped": skipped,
+        "canvas_id": canvas_id,
+        "canvas_title": canvas_title,
+        "node_id": node_id,
+        "open_url": "/static/library.html?v=20260521-library-workflow",
+    }
+    with AGENT_TASK_LOCK:
+        return agent_update_task_result(
+            AGENT_TASK_DIR,
+            task_id,
+            result=result,
+            message=f"已从智能画布回存 {count} 张图片到资源库。",
+        )
+
+
+async def run_library_batch_tag_task(task_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    provider = str(context.get("provider") or "").strip()
+    model = str(context.get("model") or "").strip()
+    if not model:
+        raise HTTPException(status_code=400, detail="请先选择用于批量标注的 Provider 和模型")
+
+    agent_task_progress(
+        task_id,
+        step_id="list_library_images",
+        message="正在解析需要批量标注的资源库图片...",
+        progress_current=0,
+        progress_total=1,
+        event_type="step",
+    )
+    targets = library_tag_targets_for_agent(context, limit=AGENT_LIBRARY_TAG_LIMIT)
+    if not targets:
+        raise HTTPException(status_code=400, detail="当前资源库上下文里没有可用于批量标注的图片")
+    if agent_task_cancelled(task_id):
+        return load_agent_task(AGENT_TASK_DIR, task_id)
+
+    total = len(targets)
+    agent_task_progress(
+        task_id,
+        step_id="tag_library_images",
+        message=f"准备批量标注 {total} 张图片...",
+        progress_current=0,
+        progress_total=total,
+        event_type="step",
+    )
+
+    results = []
+    success_count = 0
+    failed_count = 0
+    for index, img in enumerate(targets, start=1):
+        if agent_task_cancelled(task_id):
+            return load_agent_task(AGENT_TASK_DIR, task_id)
+        filename = str(img.get("filename") or img.get("id") or f"image-{index}")[:80]
+        agent_task_progress(
+            task_id,
+            step_id="tag_library_images",
+            message=f"正在标注 {index}/{total}：{filename}",
+            progress_current=index - 1,
+            progress_total=total,
+            event_type="step",
+        )
+        tag_result = await library_ai_tag(LibraryTagRequest(
+            image_ids=[img["id"]],
+            provider=provider,
+            model=model,
+        ))
+        item = (tag_result.get("results") or [{}])[0]
+        results.append(item)
+        if item.get("ok"):
+            success_count += 1
+        else:
+            failed_count += 1
+        agent_task_progress(
+            task_id,
+            step_id="tag_library_images",
+            message=f"已完成 {index}/{total} 张批量标注。",
+            progress_current=index,
+            progress_total=total,
+        )
+
+    if agent_task_cancelled(task_id):
+        return load_agent_task(AGENT_TASK_DIR, task_id)
+
+    result = {
+        "kind": "library_tagged",
+        "count": total,
+        "processed_count": total,
+        "success_count": success_count,
+        "failed_count": failed_count,
+        "provider": provider,
+        "model": model,
+        "results": results,
+        "open_url": "/static/library.html?v=20260521-library-workflow",
+    }
+    with AGENT_TASK_LOCK:
+        return agent_update_task_result(
+            AGENT_TASK_DIR,
+            task_id,
+            result=result,
+            message=f"已完成 {success_count}/{total} 张资源库图片的批量标注。",
+        )
+
+
+async def execute_agent_task(task_id: str):
+    try:
+        with AGENT_TASK_LOCK:
+            task = load_agent_task(AGENT_TASK_DIR, task_id)
+        plan = task.get("plan") or {}
+        page_role = str(plan.get("page_role") or task.get("page_role") or "")
+        context = task.get("context") or {}
+        tool_ids = plan.get("tool_ids") or []
+
+        if page_role == "library" and "create_smart_canvas" in tool_ids and "append_images_to_smart_canvas" in tool_ids:
+            await run_library_to_smart_canvas_task(task_id, context)
+            return
+        if page_role == "library" and "tag_library_images" in tool_ids:
+            await run_library_batch_tag_task(task_id, context)
+            return
+        if page_role == "smart-canvas" and "save_canvas_node_images_to_library" in tool_ids:
+            await run_smart_canvas_to_library_task(task_id, context)
+            return
+
+        raise HTTPException(status_code=400, detail="当前任务类型还没有接入执行能力")
+    except HTTPException as exc:
+        with AGENT_TASK_LOCK:
+            agent_fail_task(AGENT_TASK_DIR, task_id, str(exc.detail))
+    except Exception as exc:
+        with AGENT_TASK_LOCK:
+            agent_fail_task(AGENT_TASK_DIR, task_id, f"执行失败：{exc}")
+
+@app.get("/api/agent/tools")
+async def agent_tools():
+    return {"tools": list_agent_tools()}
+
+@app.post("/api/agent/plan")
+async def agent_plan(payload: AgentPlanRequest):
+    with AGENT_TASK_LOCK:
+        task = create_plan_task(
+            AGENT_TASK_DIR,
+            goal=payload.goal,
+            page=payload.page,
+            context=payload.context,
+        )
+        task = decorate_agent_task_preview(AGENT_TASK_DIR, task)
+    return task
+
+@app.post("/api/agent/run")
+async def agent_run(payload: AgentRunRequest, background_tasks: BackgroundTasks):
+    try:
+        with AGENT_TASK_LOCK:
+            task = load_agent_task(AGENT_TASK_DIR, payload.task_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Agent 任务不存在")
+
+    try:
+        if task.get("status") == "running":
+            raise HTTPException(status_code=409, detail="当前 Agent 任务正在执行中")
+        if task.get("status") in {"succeeded", "failed", "cancelled"}:
+            raise HTTPException(status_code=400, detail="当前 Agent 任务已结束，请重新生成计划")
+
+        merged_context = merge_agent_context(task, payload.context_overrides or {})
+        task = agent_update_task_plan(
+            AGENT_TASK_DIR,
+            payload.task_id,
+            context=merged_context,
+        )
+        task = decorate_agent_task_preview(AGENT_TASK_DIR, task)
+        plan = task.get("plan") or {}
+        if not plan.get("can_run", True):
+            blockers = plan.get("blockers") or ["当前任务还不满足执行条件"]
+            raise HTTPException(status_code=400, detail=blockers[0])
+        task = agent_start_task(
+            AGENT_TASK_DIR,
+            payload.task_id,
+            message="任务已进入执行队列。",
+            progress_current=0,
+            progress_total=0,
+        )
+        background_tasks.add_task(execute_agent_task, payload.task_id)
+        return task
+    except HTTPException as exc:
+        raise exc
+
+@app.get("/api/agent/tasks/{task_id}")
+async def agent_task_status(task_id: str):
+    try:
+        with AGENT_TASK_LOCK:
+            task = load_agent_task(AGENT_TASK_DIR, task_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Agent 任务不存在")
+    return task
+
+@app.post("/api/agent/cancel/{task_id}")
+async def agent_cancel(task_id: str):
+    try:
+        with AGENT_TASK_LOCK:
+            task = agent_cancel_task(AGENT_TASK_DIR, task_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Agent 任务不存在")
+    return task
 
 @app.get("/api/view")
 def view_image(filename: str, type: str = "input", subfolder: str = ""):
@@ -4022,103 +4743,15 @@ def library_scan_source(source_id: str):
 
 @app.post("/api/library/import")
 def library_import_images(req: LibraryImportRequest):
-    urls = [str(url or "").strip() for url in req.urls[:200] if str(url or "").strip()]
-    if not urls:
-        raise HTTPException(status_code=400, detail="没有可导入的素材")
-
-    source_slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", (req.source_name or "smart-canvas").strip().lower()).strip("-") or "smart-canvas"
-    source_id = f"smart-{source_slug}"[:48]
-    source_name = (req.source_name or "智能画布").strip()[:80] or "智能画布"
-    source_folder = os.path.join(LIBRARY_DIR, source_id, "files")
-    os.makedirs(source_folder, exist_ok=True)
-    os.makedirs(os.path.join(LIBRARY_DIR, source_id, "thumbs"), exist_ok=True)
-
-    sources = load_library_sources()
-    src = next((s for s in sources if s.get("id") == source_id), None)
-    if not src:
-        src = {
-            "id": source_id,
-            "name": source_name,
-            "type": "local",
-            "path": source_folder,
-            "enabled": True,
-            "created_at": now_ms(),
-            "last_scan_at": 0,
-            "managed_by": "smart-canvas",
-        }
-        sources.insert(0, src)
-    else:
-        src["name"] = source_name
-        src["type"] = "local"
-        src["path"] = source_folder
-        src["enabled"] = True
-
-    images = load_library_images()
-    categories = [str(x).strip() for x in (req.categories or []) if str(x).strip()][:8]
-    manual_tags = [str(x).strip() for x in (req.manual_tags or []) if str(x).strip()][:24]
-    imported = []
-    skipped = []
-
-    for index, url in enumerate(urls, start=1):
-        path = local_asset_path_from_url(url)
-        if not path or not os.path.isfile(path):
-            skipped.append({"url": url, "reason": "missing"})
-            continue
-        mime = content_type_for_path(path)
-        if not mime.startswith("image/"):
-            skipped.append({"url": url, "reason": "not_image"})
-            continue
-        base = os.path.basename(path) or f"image-{index}.png"
-        stem, ext = os.path.splitext(base)
-        ext = ext or ".png"
-        archive_name = f"{re.sub(r'[^a-zA-Z0-9._-]+', '_', stem)[:80]}{ext.lower()}"
-        target_path = os.path.join(source_folder, archive_name)
-        suffix = 2
-        while os.path.exists(target_path):
-            target_path = os.path.join(source_folder, f"{re.sub(r'[^a-zA-Z0-9._-]+', '_', stem)[:72]}-{suffix}{ext.lower()}")
-            suffix += 1
-        shutil.copy2(path, target_path)
-        thumb_name, w, h = create_library_thumb_from_path(target_path, source_id)
-        filename = os.path.basename(target_path)
-        record = {
-            "id": f"img_{uuid.uuid4().hex[:12]}",
-            "source_id": source_id,
-            "source_name": source_name,
-            "source_canvas_id": req.canvas_id,
-            "source_canvas_title": req.canvas_title,
-            "source_node_id": req.node_id,
-            "filename": filename,
-            "local_path": target_path,
-            "url": f"/api/library/file/{source_id}/{urllib.parse.quote(filename)}",
-            "thumb_url": f"/api/library/thumb/{source_id}/{thumb_name}",
-            "width": w,
-            "height": h,
-            "size_bytes": os.path.getsize(target_path),
-            "categories": categories[:],
-            "tags": list(dict.fromkeys(manual_tags)),
-            "ai_tags": [],
-            "ai_tagged": False,
-            "ai_tag_model": "",
-            "manual_tags": manual_tags[:],
-            "favorited": False,
-            "notes": "\n".join([
-                line for line in [
-                    f"来自智能画布：{req.canvas_title}" if req.canvas_title else "",
-                    f"画布ID：{req.canvas_id}" if req.canvas_id else "",
-                    f"节点ID：{req.node_id}" if req.node_id else "",
-                    f"原始路径：{url}",
-                ] if line
-            ]),
-            "created_at": now_ms(),
-            "updated_at": now_ms(),
-        }
-        images.append(record)
-        imported.append(record)
-
-    src["last_scan_at"] = now_ms()
-    save_library_sources(sources)
-    save_library_images(images)
-    return {"imported": imported, "count": len(imported), "skipped": skipped, "source_id": source_id}
+    return import_urls_into_library(
+        urls=req.urls,
+        source_name=req.source_name,
+        canvas_id=req.canvas_id,
+        canvas_title=req.canvas_title,
+        node_id=req.node_id,
+        manual_tags=req.manual_tags,
+        categories=req.categories,
+    )
 
 @app.get("/api/library/images")
 def library_list_images(

@@ -441,6 +441,7 @@
         <div class="smart-top-actions">
             <button id="openLibraryBtn" class="smart-action-btn" type="button"><i data-lucide="images"></i><span data-i18n="smart.openLibrary">资源库</span></button>
             <button id="saveNodeToLibraryBtn" class="smart-action-btn" type="button"><i data-lucide="library"></i><span data-i18n="smart.saveToLibrary">存入资源库</span></button>
+            <button id="agentSaveToLibraryBtn" class="smart-action-btn" type="button"><i data-lucide="sparkles"></i><span>交给助手入库</span></button>
             <button id="exportAssetsBtn" class="smart-action-btn" type="button"><i data-lucide="package"></i><span data-i18n="smart.exportAssets">导出素材</span></button>
         </div>
         <div id="smartTitle" class="smart-title" data-i18n="smart.title">智能画布</div>
@@ -590,6 +591,7 @@
         const fileInput = document.getElementById('fileInput');
         const openLibraryBtn = document.getElementById('openLibraryBtn');
         const saveNodeToLibraryBtn = document.getElementById('saveNodeToLibraryBtn');
+        const agentSaveToLibraryBtn = document.getElementById('agentSaveToLibraryBtn');
         const exportAssetsBtn = document.getElementById('exportAssetsBtn');
         const libraryPickerModal = document.getElementById('libraryPickerModal');
         const libraryPickerBody = document.getElementById('libraryPickerBody');
@@ -811,6 +813,16 @@
             link.remove();
             setTimeout(() => URL.revokeObjectURL(href), 800);
         }
+        function requestTopAgent(payload){
+            if(window.top && window.top !== window){
+                window.top.postMessage({
+                    type:'studio-agent-request',
+                    ...payload
+                }, '*');
+                return true;
+            }
+            return false;
+        }
         function isLocalAssetUrl(url){
             return typeof url === 'string' && (
                 url.startsWith('/output/') ||
@@ -833,11 +845,48 @@
             if(!node) return [];
             return (node.images || []).filter(img => img?.url && !isVideoMediaItem(img));
         }
+        function buildSmartCanvasAgentContext(extra = {}){
+            const node = selectedNode();
+            const images = selectedImagesForLibrarySave();
+            return {
+                active_page:'canvas',
+                active_page_label:'智能画布',
+                canvas_id:canvasId,
+                canvas_title:canvas?.title || '',
+                selected_node_id:node?.id || '',
+                selected_nodes_count:selectedIds.length || (selectedId ? 1 : 0),
+                selected_image_urls:images.map(img => img.url),
+                selected_image_count:images.length,
+                ...extra
+            };
+        }
+        function requestAgentSaveToLibrary(){
+            const node = selectedNode();
+            const images = selectedImagesForLibrarySave();
+            if(!node || !images.length){
+                toast(tr('smart.toastLibrarySaveNeedNode'));
+                return;
+            }
+            const ok = requestTopAgent({
+                page:'canvas',
+                goal:'把当前智能画布选中结果存入资源库',
+                context:buildSmartCanvasAgentContext({
+                    intent:'save_to_library'
+                })
+            });
+            if(!ok){
+                toast('当前不在工作台主容器中，无法打开顶层 Agent。');
+            }
+        }
         function updateTopActionState(){
             const selectedImages = selectedImagesForLibrarySave();
             if(saveNodeToLibraryBtn){
                 saveNodeToLibraryBtn.disabled = selectedImages.length === 0;
                 saveNodeToLibraryBtn.title = selectedImages.length ? '' : (tr('smart.saveToLibraryDisabled') || '');
+            }
+            if(agentSaveToLibraryBtn){
+                agentSaveToLibraryBtn.disabled = selectedImages.length === 0;
+                agentSaveToLibraryBtn.title = selectedImages.length ? '' : (tr('smart.saveToLibraryDisabled') || '');
             }
         }
         function selectedNode(){ return nodes.find(n => n.id === selectedId) || null; }
@@ -3984,6 +4033,7 @@
         openLibraryBtn.onclick = openLibraryPicker;
         exportAssetsBtn.onclick = exportCanvasAssets;
         saveNodeToLibraryBtn.onclick = saveSelectedNodeToLibrary;
+        agentSaveToLibraryBtn.onclick = requestAgentSaveToLibrary;
         libraryPickerInsertBtn.onclick = insertSelectedLibraryImages;
         libraryPickerModal.addEventListener('click', event => {
             if(event.target === libraryPickerModal) closeLibraryPicker();

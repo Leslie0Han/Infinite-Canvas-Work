@@ -351,6 +351,344 @@
             font-size: 9px;
         }
 
+        .agent-drawer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 120;
+            width: min(420px, calc(100vw - 24px));
+            height: 100%;
+            background: rgba(255, 255, 255, 0.94);
+            border-left: 1px solid var(--border);
+            box-shadow: -24px 0 64px rgba(15, 23, 42, 0.08);
+            backdrop-filter: blur(18px);
+            transform: translateX(100%);
+            transition: transform 0.24s var(--fluid-ease);
+            display: flex;
+            flex-direction: column;
+        }
+
+        html.theme-dark .agent-drawer,
+        body.theme-dark .agent-drawer {
+            background: rgba(15, 20, 29, 0.94);
+            box-shadow: -24px 0 64px rgba(0, 0, 0, 0.28);
+        }
+
+        .agent-drawer.open {
+            transform: translateX(0);
+        }
+
+        .agent-head {
+            padding: 22px 22px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .agent-title {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .agent-sub {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .agent-close {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: transparent;
+            color: var(--text);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .agent-body {
+            padding: 18px 22px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow: auto;
+        }
+
+        .agent-card {
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.72);
+            padding: 16px;
+        }
+
+        html.theme-dark .agent-card,
+        body.theme-dark .agent-card {
+            background: rgba(17, 23, 34, 0.72);
+        }
+
+        .agent-label {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .agent-input {
+            width: 100%;
+            min-height: 110px;
+            resize: vertical;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--text);
+            padding: 14px 16px;
+            font: inherit;
+            outline: none;
+        }
+
+        html.theme-dark .agent-input,
+        body.theme-dark .agent-input {
+            background: rgba(15, 20, 29, 0.92);
+        }
+
+        .agent-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .agent-btn {
+            height: 40px;
+            padding: 0 14px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .agent-btn.primary {
+            background: var(--text);
+            color: var(--bg);
+            border-color: var(--text);
+        }
+
+        .agent-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .agent-meta {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .agent-plan-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .agent-plan-summary {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .agent-list {
+            margin: 12px 0 0;
+            padding-left: 18px;
+            color: var(--text);
+            font-size: 12px;
+            line-height: 1.65;
+        }
+
+        .agent-list li + li {
+            margin-top: 6px;
+        }
+
+        .agent-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.06);
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .agent-status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: #94a3b8;
+        }
+
+        .agent-empty {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .agent-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .agent-preview-item {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.55);
+        }
+
+        html.theme-dark .agent-preview-item,
+        body.theme-dark .agent-preview-item {
+            background: rgba(15, 20, 29, 0.72);
+        }
+
+        .agent-preview-k {
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .agent-preview-v {
+            margin-top: 4px;
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.45;
+        }
+
+        .agent-note {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 14px;
+            font-size: 12px;
+            line-height: 1.55;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.04);
+            color: var(--text);
+        }
+
+        .agent-note.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.26);
+            color: #92400e;
+        }
+
+        .agent-note.error {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.24);
+            color: #b91c1c;
+        }
+
+        html.theme-dark .agent-note.warning,
+        body.theme-dark .agent-note.warning {
+            color: #fdba74;
+        }
+
+        html.theme-dark .agent-note.error,
+        body.theme-dark .agent-note.error {
+            color: #fca5a5;
+        }
+
+        .agent-field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .agent-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .agent-field span {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .agent-select {
+            height: 40px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--text);
+            padding: 0 12px;
+            font-size: 12px;
+            outline: none;
+        }
+
+        html.theme-dark .agent-select,
+        body.theme-dark .agent-select {
+            background: rgba(15, 20, 29, 0.92);
+        }
+
+        .agent-timeline {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .agent-event {
+            position: relative;
+            padding-left: 18px;
+            color: var(--text);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .agent-event::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 6px;
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #94a3b8;
+        }
+
+        .agent-event.running::before { background: #3b82f6; }
+        .agent-event.succeeded::before { background: #10b981; }
+        .agent-event.failed::before { background: #ef4444; }
+        .agent-event.cancelled::before { background: #f59e0b; }
+
+        .agent-event-time {
+            display: block;
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
         .side-actions {
             margin-top:auto;
             margin-bottom:12px;
@@ -490,6 +828,12 @@
             </nav>
 
             <div class="side-actions">
+                <button class="side-pill" id="agentFab" type="button" title="工作台 Agent" aria-label="打开工作台 Agent">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2l1.9 5.8L20 10l-6.1 2.2L12 18l-1.9-5.8L4 10l6.1-2.2L12 2z"></path>
+                    </svg>
+                    <span class="side-pill-text">Agent</span>
+                </button>
                 <button class="side-pill" onclick="toggleTheme()" id="theme-toggle-btn" type="button" title="鍒囨崲澶滈棿妯″紡">
                     <svg id="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -554,6 +898,72 @@
         </script>
 
         <main class="stage">
+            <aside class="agent-drawer" id="agentDrawer" aria-hidden="true">
+                <div class="agent-head">
+                    <div>
+                        <div class="agent-title">工作台 Agent</div>
+                        <div class="agent-sub">先生成计划，再确认目标范围和写入动作，然后再执行真实工作流。</div>
+                    </div>
+                    <button class="agent-close" type="button" id="agentCloseBtn" aria-label="关闭 Agent">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6L6 18"></path>
+                            <path d="M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="agent-body">
+                    <section class="agent-card">
+                        <div class="agent-label">任务目标</div>
+                        <textarea id="agentGoalInput" class="agent-input" placeholder="例如：帮我基于当前页面做一个智能画布草稿计划"></textarea>
+                        <div class="agent-actions" style="margin-top:12px;">
+                            <button class="agent-btn primary" type="button" id="agentPlanBtn">
+                                <span>生成计划</span>
+                            </button>
+                            <button class="agent-btn" type="button" id="agentRunBtn" disabled>
+                                <span>执行计划</span>
+                            </button>
+                            <button class="agent-btn" type="button" id="agentCancelBtn" disabled>
+                                <span>取消任务</span>
+                            </button>
+                        </div>
+                    </section>
+                    <section class="agent-card">
+                        <div class="agent-label">当前上下文</div>
+                        <div class="agent-meta" id="agentContextMeta">将根据当前页面自动带上基础上下文。</div>
+                    </section>
+                    <section class="agent-card" id="agentConfigCard" style="display:none">
+                        <div class="agent-label">执行配置</div>
+                        <div class="agent-field-grid">
+                            <label class="agent-field">
+                                <span>Provider</span>
+                                <select id="agentProviderSelect" class="agent-select"></select>
+                            </label>
+                            <label class="agent-field">
+                                <span>模型</span>
+                                <select id="agentModelSelect" class="agent-select"></select>
+                            </label>
+                        </div>
+                        <div class="agent-meta" id="agentConfigHint" style="margin-top:10px;">批量标注需要显式选择可用的聊天模型。</div>
+                    </section>
+                    <section class="agent-card">
+                        <div class="agent-label">任务状态</div>
+                        <div class="agent-status" id="agentStatusBadge">
+                            <span class="agent-status-dot"></span>
+                            <span id="agentStatusText">未开始</span>
+                        </div>
+                        <div class="agent-meta" id="agentTaskMeta" style="margin-top:12px;">还没有生成计划。</div>
+                        <div class="agent-timeline" id="agentTaskEvents"></div>
+                    </section>
+                    <section class="agent-card">
+                        <div class="agent-label">计划预览</div>
+                        <div id="agentPlanResult" class="agent-empty">生成计划后，这里会展示步骤、工具和确认点。</div>
+                    </section>
+                    <section class="agent-card">
+                        <div class="agent-label">执行结果</div>
+                        <div id="agentResult" class="agent-empty">执行完成后，这里会展示回跳入口。</div>
+                    </section>
+                </div>
+            </aside>
             <iframe id="frame-zimage" data-src="/static/zimage.html?v=20260512-i18n2" class="active" scrolling="yes"></iframe>
             <iframe id="frame-enhance" data-src="/static/enhance.html?v=20260512-i18n2" scrolling="yes"></iframe>
             <iframe id="frame-klein" data-src="/static/klein.html?v=20260512-i18n2" scrolling="yes"></iframe>
@@ -596,6 +1006,28 @@
         const ACTIVE_PAGE_KEY = 'studio_active_page';
         const DEFAULT_PAGE_ID = 'zimage';
         const PAGE_IDS = ['zimage','enhance','klein','angle','online','gpt-chat','canvas','library','api-settings','comfyui-settings'];
+        let currentPageId = DEFAULT_PAGE_ID;
+        let currentAgentTask = null;
+        let agentContextOverride = null;
+        let agentPollTimer = null;
+        let agentProviders = [];
+        const agentFab = document.getElementById('agentFab');
+        const agentDrawer = document.getElementById('agentDrawer');
+        const agentCloseBtn = document.getElementById('agentCloseBtn');
+        const agentGoalInput = document.getElementById('agentGoalInput');
+        const agentPlanBtn = document.getElementById('agentPlanBtn');
+        const agentRunBtn = document.getElementById('agentRunBtn');
+        const agentCancelBtn = document.getElementById('agentCancelBtn');
+        const agentContextMeta = document.getElementById('agentContextMeta');
+        const agentStatusText = document.getElementById('agentStatusText');
+        const agentTaskMeta = document.getElementById('agentTaskMeta');
+        const agentTaskEvents = document.getElementById('agentTaskEvents');
+        const agentPlanResult = document.getElementById('agentPlanResult');
+        const agentResult = document.getElementById('agentResult');
+        const agentConfigCard = document.getElementById('agentConfigCard');
+        const agentProviderSelect = document.getElementById('agentProviderSelect');
+        const agentModelSelect = document.getElementById('agentModelSelect');
+        const agentConfigHint = document.getElementById('agentConfigHint');
 
         function switchUI(el, id, options = {}) {
             if(!PAGE_IDS.includes(id)) id = DEFAULT_PAGE_ID;
@@ -606,6 +1038,9 @@
             target.classList.add('active');
             if (!target.src) target.src = target.dataset.src;
             if(!options.skipRemember) localStorage.setItem(ACTIVE_PAGE_KEY, id);
+            currentPageId = id;
+            agentContextOverride = null;
+            updateAgentContextMeta();
             // sync theme to newly activated iframe
             syncThemeToFrame(target);
             syncLanguageToFrame(target);
@@ -723,6 +1158,487 @@
             });
         }
 
+        function setAgentDrawerOpen(open) {
+            if(open) agentDrawer.classList.add('open');
+            else agentDrawer.classList.remove('open');
+            agentDrawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+            agentFab.classList.toggle('active', Boolean(open));
+        }
+
+        function humanPageLabel(pageId) {
+            const map = {
+                'library': '资源库',
+                'canvas': '智能画布/画布',
+                'home': '首页工作台',
+                'zimage': '首页工作台',
+                'enhance': '增强页',
+                'klein': '编辑页',
+                'angle': '角度页',
+                'online': '在线生图',
+                'gpt-chat': 'GPT 对话',
+                'api-settings': 'API 设置',
+                'comfyui-settings': 'ComfyUI 设置'
+            };
+            return map[pageId] || '当前页面';
+        }
+
+        function stopAgentPolling() {
+            if (agentPollTimer) {
+                clearInterval(agentPollTimer);
+                agentPollTimer = null;
+            }
+        }
+
+        function formatAgentTime(value) {
+            if (!value) return '';
+            const date = new Date(Number(value));
+            if (Number.isNaN(date.getTime())) return '';
+            return date.toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+        }
+
+        function agentTaskNeedsModelConfig(task = currentAgentTask) {
+            const toolIds = task?.plan?.tool_ids || [];
+            return Array.isArray(toolIds) && toolIds.includes('tag_library_images');
+        }
+
+        function findAgentProvider(providerId) {
+            return agentProviders.find(item => item.id === providerId) || null;
+        }
+
+        function providerModelOptions(providerId) {
+            const provider = findAgentProvider(providerId);
+            return Array.isArray(provider?.chat_models) ? provider.chat_models : [];
+        }
+
+        function renderAgentModelOptions(preferredModel = '') {
+            const providerId = agentProviderSelect.value;
+            const models = providerModelOptions(providerId);
+            agentModelSelect.innerHTML = '';
+            if (models.length) {
+                models.forEach(model => {
+                    const opt = document.createElement('option');
+                    opt.value = model;
+                    opt.textContent = model;
+                    agentModelSelect.appendChild(opt);
+                });
+                agentModelSelect.value = models.includes(preferredModel) ? preferredModel : models[0];
+            } else {
+                agentModelSelect.innerHTML = '<option value="">-- 请先配置可用模型 --</option>';
+            }
+        }
+
+        async function ensureAgentProvidersLoaded() {
+            if (agentProviders.length) return;
+            try {
+                const res = await fetch('/api/providers');
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || '加载 Provider 失败');
+                agentProviders = (data.providers || []).filter(item => item.enabled);
+            } catch (err) {
+                agentProviders = [];
+            }
+        }
+
+        async function syncAgentConfigCard(task = currentAgentTask) {
+            if (!agentTaskNeedsModelConfig(task)) {
+                agentConfigCard.style.display = 'none';
+                return;
+            }
+            agentConfigCard.style.display = '';
+            await ensureAgentProvidersLoaded();
+            const ctx = buildAgentContext();
+            const currentProvider = ctx.provider || '';
+            const currentModel = ctx.model || '';
+            agentProviderSelect.innerHTML = '<option value="">默认</option>';
+            agentProviders.forEach(provider => {
+                const opt = document.createElement('option');
+                opt.value = provider.id;
+                opt.textContent = provider.name || provider.id;
+                agentProviderSelect.appendChild(opt);
+            });
+            agentProviderSelect.value = currentProvider;
+            renderAgentModelOptions(currentModel);
+            if (currentModel) {
+                const models = providerModelOptions(agentProviderSelect.value);
+                if (models.includes(currentModel)) agentModelSelect.value = currentModel;
+            }
+            agentConfigHint.textContent = agentModelSelect.value
+                ? `当前将使用 ${agentProviderSelect.value || '默认'} / ${agentModelSelect.value} 进行批量标注。`
+                : '批量标注需要显式选择可用的聊天模型。';
+            updateAgentRunAvailability();
+        }
+
+        function agentContextOverridesFromControls() {
+            if (!agentTaskNeedsModelConfig()) return {};
+            return {
+                provider: agentProviderSelect.value || '',
+                model: agentModelSelect.value || ''
+            };
+        }
+
+        function buildAgentContext() {
+            const base = {
+                active_page: currentPageId,
+                active_page_label: humanPageLabel(currentPageId)
+            };
+            const merged = {
+                ...base,
+                ...(agentContextOverride || {}),
+                ...agentContextOverridesFromControls(),
+                active_page: (agentContextOverride || {}).active_page || base.active_page,
+                active_page_label: (agentContextOverride || {}).active_page_label || base.active_page_label
+            };
+            return merged;
+        }
+
+        function updateAgentContextMeta() {
+            const ctx = buildAgentContext();
+            const parts = [`当前入口：${ctx.active_page_label}`];
+            if (ctx.source_name) parts.push(`来源：${ctx.source_name}`);
+            if (ctx.query) parts.push(`搜索词：${ctx.query}`);
+            if (ctx.category) parts.push(`分类：${ctx.category}`);
+            if (ctx.provider) parts.push(`Provider：${ctx.provider}`);
+            if (ctx.model) parts.push(`模型：${ctx.model}`);
+            if (Number(ctx.visible_count || 0) > 0) parts.push(`当前可见：${ctx.visible_count} 张`);
+            if (Number(ctx.selected_count || 0) > 0) parts.push(`当前选中：${ctx.selected_count} 张`);
+            agentContextMeta.textContent = `${parts.join('，')}。`;
+        }
+
+        function setAgentStatus(status, message) {
+            const labels = {
+                idle: '未开始',
+                loading: '生成中',
+                planned: '已生成计划',
+                running: '执行中',
+                succeeded: '执行完成',
+                failed: '执行失败',
+                cancelled: '已取消',
+                error: '出错了'
+            };
+            agentStatusText.textContent = labels[status] || status;
+            if(message) agentTaskMeta.textContent = message;
+        }
+
+        function renderAgentEvents(task) {
+            const events = Array.isArray(task?.events) ? task.events : [];
+            if (!events.length) {
+                agentTaskEvents.innerHTML = '';
+                return;
+            }
+            agentTaskEvents.innerHTML = events.map(event => `
+                <div class="agent-event ${escapeHtml(event.type || '')}">
+                    <div>${escapeHtml(event.message || '')}</div>
+                    <span class="agent-event-time">${escapeHtml(formatAgentTime(event.at))}${event.progress_total ? ` · ${escapeHtml(event.progress_current || 0)}/${escapeHtml(event.progress_total)}` : ''}</span>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(value) {
+            return String(value == null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function updateAgentRunAvailability() {
+            if (!currentAgentTask?.id) {
+                agentRunBtn.disabled = true;
+                agentCancelBtn.disabled = true;
+                return;
+            }
+            const status = currentAgentTask.status || 'planned';
+            if (status === 'running') {
+                agentRunBtn.disabled = true;
+                agentCancelBtn.disabled = false;
+                return;
+            }
+            if (['succeeded', 'failed', 'cancelled'].includes(status)) {
+                agentRunBtn.disabled = true;
+                agentCancelBtn.disabled = true;
+                return;
+            }
+            const plan = resolveAgentPlanForDisplay(currentAgentTask);
+            const blockers = Array.isArray(plan?.blockers) ? plan.blockers : [];
+            const canRun = Boolean(plan && plan.can_run !== false && blockers.length === 0);
+            agentRunBtn.disabled = !canRun;
+            agentCancelBtn.disabled = true;
+        }
+
+        function resolveAgentPlanForDisplay(task) {
+            const rawPlan = task?.plan;
+            if (!rawPlan) return null;
+            const plan = {
+                ...rawPlan,
+                preview: { ...(rawPlan.preview || {}) },
+                blockers: Array.isArray(rawPlan.blockers) ? [...rawPlan.blockers] : []
+            };
+            if (agentTaskNeedsModelConfig(task)) {
+                if (agentProviderSelect.value) plan.preview.provider = agentProviderSelect.value;
+                if (agentModelSelect.value) {
+                    plan.preview.model = agentModelSelect.value;
+                    plan.blockers = plan.blockers.filter(item => !String(item).includes('Provider 和模型'));
+                }
+                plan.can_run = Boolean((plan.preview.effective_count || 0) > 0 && agentModelSelect.value);
+            }
+            return plan;
+        }
+
+        function renderAgentPlan(task) {
+            const plan = resolveAgentPlanForDisplay(task);
+            if(!plan) {
+                agentPlanResult.innerHTML = '<div class="agent-empty">还没有可展示的计划。</div>';
+                return;
+            }
+            const contextLines = Array.isArray(plan.context_summary) ? plan.context_summary : [];
+            const steps = Array.isArray(plan.steps) ? plan.steps : [];
+            const preview = plan.preview || {};
+            const blockers = Array.isArray(plan.blockers) ? plan.blockers : [];
+            const warnings = Array.isArray(preview.warnings) ? preview.warnings : [];
+            agentPlanResult.innerHTML = `
+                <div class="agent-plan-title">${escapeHtml(plan.title || '任务计划')}</div>
+                <div class="agent-plan-summary">${escapeHtml(plan.summary || '')}</div>
+                <ul class="agent-list">
+                    ${contextLines.map(line => `<li>${escapeHtml(line)}</li>`).join('')}
+                </ul>
+                <div class="agent-preview-grid">
+                    <div class="agent-preview-item">
+                        <div class="agent-preview-k">目标来源</div>
+                        <div class="agent-preview-v">${escapeHtml(preview.target_source_label || '当前上下文')}</div>
+                    </div>
+                    <div class="agent-preview-item">
+                        <div class="agent-preview-k">命中 / 实际处理</div>
+                        <div class="agent-preview-v">${escapeHtml(preview.matched_total || 0)} / ${escapeHtml(preview.effective_count || 0)}</div>
+                    </div>
+                    <div class="agent-preview-item">
+                        <div class="agent-preview-k">写入目标</div>
+                        <div class="agent-preview-v">${escapeHtml(preview.write_target_label || '无写入')}</div>
+                    </div>
+                    <div class="agent-preview-item">
+                        <div class="agent-preview-k">执行上限</div>
+                        <div class="agent-preview-v">${escapeHtml(preview.limit || 0)}${preview.truncated ? '（已截断）' : ''}</div>
+                    </div>
+                </div>
+                ${warnings.map(item => `<div class="agent-note warning">${escapeHtml(item)}</div>`).join('')}
+                ${blockers.map(item => `<div class="agent-note error">${escapeHtml(item)}</div>`).join('')}
+                <div class="agent-plan-summary" style="margin-top:12px;">目标产出：${escapeHtml(plan.output_target || '未定义')}</div>
+                <ul class="agent-list">
+                    ${steps.map((step, index) => `<li>${index + 1}. ${escapeHtml(step.title || '')}${step.writes ? '（需确认）' : ''}</li>`).join('')}
+                </ul>
+                <div class="agent-note">${blockers.length ? '执行前还需要先解决上面的阻塞项。' : '确认无误后，再执行当前计划。'}</div>
+            `;
+        }
+
+        function renderAgentResult(task) {
+            const result = task?.result;
+            if(!result) {
+                agentResult.innerHTML = '<div class="agent-empty">执行完成后，这里会展示回跳入口。</div>';
+                return;
+            }
+            if(result.error) {
+                agentResult.innerHTML = `<div class="agent-empty">${escapeHtml(result.error)}</div>`;
+                return;
+            }
+            if(result.kind === 'smart_canvas_created') {
+                agentResult.innerHTML = `
+                    <div class="agent-plan-title">${escapeHtml(result.canvas_title || '智能画布草稿')}</div>
+                    <div class="agent-plan-summary">已插入 ${escapeHtml(result.inserted_image_count || 0)} 张图片，命中总数 ${escapeHtml(result.matched_total || 0)}${result.truncated ? '，已按上限截断。' : '。'}</div>
+                    <div class="agent-actions" style="margin-top:12px;">
+                        <button class="agent-btn primary" type="button" id="agentOpenCanvasBtn">打开智能画布</button>
+                    </div>
+                `;
+                const openBtn = document.getElementById('agentOpenCanvasBtn');
+                openBtn?.addEventListener('click', () => {
+                    if(result.open_url) window.location.href = result.open_url;
+                });
+                return;
+            }
+            if(result.kind === 'library_imported') {
+                agentResult.innerHTML = `
+                    <div class="agent-plan-title">资源库回存完成</div>
+                    <div class="agent-plan-summary">已导入 ${escapeHtml(result.count || 0)} 张图片${Array.isArray(result.skipped) && result.skipped.length ? `，跳过 ${escapeHtml(result.skipped.length)}` : ''}。</div>
+                    <div class="agent-plan-summary">来源画布：${escapeHtml(result.canvas_title || result.canvas_id || '智能画布')}</div>
+                    <div class="agent-actions" style="margin-top:12px;">
+                        <button class="agent-btn primary" type="button" id="agentOpenLibraryBtn">打开资源库</button>
+                    </div>
+                `;
+                const openBtn = document.getElementById('agentOpenLibraryBtn');
+                openBtn?.addEventListener('click', () => {
+                    if(result.open_url) window.location.href = result.open_url;
+                });
+                return;
+            }
+            if(result.kind === 'library_tagged') {
+                agentResult.innerHTML = `
+                    <div class="agent-plan-title">批量标注完成</div>
+                    <div class="agent-plan-summary">已处理 ${escapeHtml(result.count || 0)} 张资源库图片，成功 ${escapeHtml(result.success_count || 0)} 张，失败 ${escapeHtml(result.failed_count || 0)} 张。</div>
+                    <div class="agent-plan-summary">模型：${escapeHtml(result.provider || '默认')} / ${escapeHtml(result.model || '未设置')}</div>
+                    <div class="agent-actions" style="margin-top:12px;">
+                        <button class="agent-btn primary" type="button" id="agentOpenLibraryAfterTagBtn">打开资源库</button>
+                    </div>
+                `;
+                const openBtn = document.getElementById('agentOpenLibraryAfterTagBtn');
+                openBtn?.addEventListener('click', () => {
+                    if(result.open_url) window.location.href = result.open_url;
+                });
+                return;
+            }
+            agentResult.innerHTML = `<div class="agent-empty">${escapeHtml(JSON.stringify(result))}</div>`;
+        }
+
+        async function createAgentPlan() {
+            const goal = agentGoalInput.value.trim();
+            stopAgentPolling();
+            agentPlanBtn.disabled = true;
+            agentRunBtn.disabled = true;
+            agentCancelBtn.disabled = true;
+            renderAgentResult(null);
+            renderAgentEvents(null);
+            setAgentStatus('loading', '正在生成计划...');
+            try {
+                const res = await fetch('/api/agent/plan', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        goal,
+                        page: currentPageId,
+                        context: buildAgentContext()
+                    })
+                });
+                const data = await res.json();
+                if(!res.ok) throw new Error(data.detail || '生成计划失败');
+                currentAgentTask = data;
+                await syncAgentConfigCard(data);
+                updateAgentContextMeta();
+                renderAgentPlan(data);
+                renderAgentResult(data);
+                renderAgentEvents(data);
+                setAgentStatus('planned', `任务 ID：${data.id}，当前状态：${data.status}`);
+                updateAgentRunAvailability();
+            } catch (err) {
+                renderAgentPlan(null);
+                renderAgentResult(null);
+                renderAgentEvents(null);
+                setAgentStatus('error', err.message || '生成计划失败');
+            } finally {
+                agentPlanBtn.disabled = false;
+            }
+        }
+
+        async function pollAgentTask(taskId) {
+            if (!taskId) return;
+            try {
+                const res = await fetch(`/api/agent/tasks/${encodeURIComponent(taskId)}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || '读取任务状态失败');
+                currentAgentTask = data;
+                renderAgentPlan(data);
+                renderAgentResult(data);
+                renderAgentEvents(data);
+                const lastEvent = Array.isArray(data.events) && data.events.length ? data.events[data.events.length - 1] : null;
+                const message = data.current_step?.message || lastEvent?.message || `任务 ${data.id} 状态：${data.status}`;
+                setAgentStatus(data.status || 'running', message);
+                updateAgentRunAvailability();
+                if (['succeeded', 'failed', 'cancelled'].includes(data.status)) {
+                    stopAgentPolling();
+                    agentPlanBtn.disabled = false;
+                    agentCancelBtn.disabled = true;
+                }
+            } catch (err) {
+                stopAgentPolling();
+                setAgentStatus('error', err.message || '读取任务状态失败');
+                agentPlanBtn.disabled = false;
+                agentCancelBtn.disabled = true;
+            }
+        }
+
+        function startAgentPolling(taskId) {
+            stopAgentPolling();
+            pollAgentTask(taskId);
+            agentPollTimer = setInterval(() => pollAgentTask(taskId), 1000);
+        }
+
+        async function runAgentTask() {
+            if(!currentAgentTask?.id) return;
+            agentPlanBtn.disabled = true;
+            agentRunBtn.disabled = true;
+            agentCancelBtn.disabled = false;
+            setAgentStatus('running', `任务 ${currentAgentTask.id} 执行中...`);
+            try {
+                const res = await fetch('/api/agent/run', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        task_id: currentAgentTask.id,
+                        context_overrides: agentContextOverridesFromControls()
+                    })
+                });
+                const data = await res.json();
+                if(!res.ok) throw new Error(data.detail || '执行失败');
+                currentAgentTask = data;
+                updateAgentContextMeta();
+                renderAgentPlan(data);
+                renderAgentResult(data);
+                renderAgentEvents(data);
+                setAgentStatus('running', `任务 ${data.id} 已开始执行`);
+                startAgentPolling(data.id);
+            } catch (err) {
+                setAgentStatus('failed', err.message || '执行失败');
+                renderAgentResult({ result: { error: err.message || '执行失败' } });
+                agentCancelBtn.disabled = true;
+            } finally {
+                updateAgentRunAvailability();
+            }
+        }
+
+        async function cancelAgentTask() {
+            if(!currentAgentTask?.id) return;
+            agentRunBtn.disabled = true;
+            agentCancelBtn.disabled = true;
+            try {
+                const res = await fetch(`/api/agent/cancel/${encodeURIComponent(currentAgentTask.id)}`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                if(!res.ok) throw new Error(data.detail || '取消任务失败');
+                currentAgentTask = data;
+                stopAgentPolling();
+                renderAgentEvents(data);
+                setAgentStatus('cancelled', `任务 ${data.id} 已取消`);
+            } catch (err) {
+                setAgentStatus('error', err.message || '取消任务失败');
+                agentCancelBtn.disabled = false;
+            } finally {
+                agentPlanBtn.disabled = false;
+            }
+        }
+
+        async function requestAgentPlanFromContext(payload = {}) {
+            const nextPage = payload.page;
+            if (nextPage && PAGE_IDS.includes(nextPage)) currentPageId = nextPage;
+            agentContextOverride = payload.context && typeof payload.context === 'object'
+                ? { ...payload.context }
+                : null;
+            if (typeof payload.goal === 'string' && payload.goal.trim()) {
+                agentGoalInput.value = payload.goal.trim();
+            }
+            updateAgentContextMeta();
+            await syncAgentConfigCard();
+            setAgentDrawerOpen(true);
+            if (payload.autoPlan !== false) {
+                await createAgentPlan();
+            }
+        }
+
+        window.addEventListener('message', (event) => {
+            const data = event?.data;
+            if (!data || typeof data !== 'object') return;
+            if (data.type === 'studio-agent-request') {
+                requestAgentPlanFromContext(data);
+            }
+        });
+
         // listen for theme changes triggered by theme.js
         window.addEventListener('studio-theme-change', (e) => {
             updateThemeIcon(e.detail.theme);
@@ -734,6 +1650,32 @@
             updateThemeIcon(theme);
             if(window.StudioI18n) window.StudioI18n.apply();
             broadcastLanguage();
+            updateAgentContextMeta();
+            setAgentStatus('idle', '还没有生成计划。');
+            renderAgentEvents(null);
+        });
+
+        agentFab.addEventListener('click', () => setAgentDrawerOpen(true));
+        agentCloseBtn.addEventListener('click', () => setAgentDrawerOpen(false));
+        agentPlanBtn.addEventListener('click', createAgentPlan);
+        agentRunBtn.addEventListener('click', runAgentTask);
+        agentCancelBtn.addEventListener('click', cancelAgentTask);
+        agentProviderSelect.addEventListener('change', () => {
+            renderAgentModelOptions('');
+            agentConfigHint.textContent = agentModelSelect.value
+                ? `当前将使用 ${agentProviderSelect.value || '默认'} / ${agentModelSelect.value} 进行批量标注。`
+                : '批量标注需要显式选择可用的聊天模型。';
+            updateAgentContextMeta();
+            renderAgentPlan(currentAgentTask);
+            updateAgentRunAvailability();
+        });
+        agentModelSelect.addEventListener('change', () => {
+            agentConfigHint.textContent = agentModelSelect.value
+                ? `当前将使用 ${agentProviderSelect.value || '默认'} / ${agentModelSelect.value} 进行批量标注。`
+                : '批量标注需要显式选择可用的聊天模型。';
+            updateAgentContextMeta();
+            renderAgentPlan(currentAgentTask);
+            updateAgentRunAvailability();
         });
 
         // sync theme when iframe loads
